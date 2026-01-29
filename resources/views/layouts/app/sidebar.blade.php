@@ -24,7 +24,7 @@
                         {{ __('Users & Roles') }}
                     </flux:sidebar.item>
                     @can('manage-settings')
-                    <flux:sidebar.item icon="cog-6-tooth" href="#" :current="request()->routeIs('admin.settings.*')">
+                    <flux:sidebar.item icon="cog-6-tooth" :href="route('admin.settings.general')" :current="request()->routeIs('admin.settings.*')" wire:navigate>
                         {{ __('System Settings') }}
                     </flux:sidebar.item>
                     @endcan
