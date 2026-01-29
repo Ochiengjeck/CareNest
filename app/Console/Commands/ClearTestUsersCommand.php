@@ -26,11 +26,13 @@ class ClearTestUsersCommand extends Command
 
         if ($count === 0) {
             $this->info('No test users found.');
+
             return self::SUCCESS;
         }
 
-        if (!$this->option('force') && !$this->confirm("Delete {$count} test user(s)?")) {
+        if (! $this->option('force') && ! $this->confirm("Delete {$count} test user(s)?")) {
             $this->info('Cancelled.');
+
             return self::SUCCESS;
         }
 

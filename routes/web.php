@@ -12,3 +12,5 @@ Route::view('dashboard', 'dashboard')
 
 require __DIR__.'/settings.php';
 require __DIR__.'/admin.php';
+require __DIR__.'/residents.php';
+require __DIR__.'/clinical.php';

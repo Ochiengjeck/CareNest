@@ -39,11 +39,11 @@
                 {{-- Residents Navigation --}}
                 @can('view-residents')
                 <flux:sidebar.group :heading="__('Residents')" class="grid">
-                    <flux:sidebar.item icon="user-group" href="#" :current="request()->routeIs('residents.*')">
+                    <flux:sidebar.item icon="user-group" :href="route('residents.index')" :current="request()->routeIs('residents.*')" wire:navigate>
                         {{ __('All Residents') }}
                     </flux:sidebar.item>
-                    @can('manage-care-plans')
-                    <flux:sidebar.item icon="clipboard-document-list" href="#" :current="request()->routeIs('care-plans.*')">
+                    @can('view-care-plans')
+                    <flux:sidebar.item icon="clipboard-document-list" :href="route('care-plans.index')" :current="request()->routeIs('care-plans.*')" wire:navigate>
                         {{ __('Care Plans') }}
                     </flux:sidebar.item>
                     @endcan
@@ -53,10 +53,10 @@
                 {{-- Clinical Navigation --}}
                 @can('manage-medications')
                 <flux:sidebar.group :heading="__('Clinical')" class="grid">
-                    <flux:sidebar.item icon="beaker" href="#" :current="request()->routeIs('medications.*')">
+                    <flux:sidebar.item icon="beaker" :href="route('medications.index')" :current="request()->routeIs('medications.*')" wire:navigate>
                         {{ __('Medications') }}
                     </flux:sidebar.item>
-                    <flux:sidebar.item icon="heart" href="#" :current="request()->routeIs('vitals.*')">
+                    <flux:sidebar.item icon="heart" :href="route('vitals.index')" :current="request()->routeIs('vitals.*')" wire:navigate>
                         {{ __('Vitals & Observations') }}
                     </flux:sidebar.item>
                 </flux:sidebar.group>
@@ -83,7 +83,7 @@
                         {{ __('Reports') }}
                     </flux:sidebar.item>
                     @can('manage-incidents')
-                    <flux:sidebar.item icon="exclamation-triangle" href="#" :current="request()->routeIs('incidents.*')">
+                    <flux:sidebar.item icon="exclamation-triangle" :href="route('incidents.index')" :current="request()->routeIs('incidents.*')" wire:navigate>
                         {{ __('Incidents') }}
                     </flux:sidebar.item>
                     @endcan

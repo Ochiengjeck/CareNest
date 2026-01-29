@@ -1,5 +1,9 @@
 <?php
 
+use App\Models\CarePlan;
+use App\Models\Incident;
+use App\Models\Medication;
+use App\Models\Resident;
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Computed;
@@ -73,28 +77,37 @@ new class extends Component {
     #[Computed]
     public function managerStats(): array
     {
+        $activeResidents = Resident::active()->count();
+        $activeCarePlans = CarePlan::active()->count();
+
         return [
-            ['title' => 'Total Residents', 'value' => '0', 'icon' => 'user-group', 'description' => 'No residents registered yet'],
+            ['title' => 'Total Residents', 'value' => $activeResidents, 'icon' => 'user-group', 'description' => $activeResidents > 0 ? 'Active residents' : 'No residents registered yet'],
             ['title' => 'Staff on Duty', 'value' => '0', 'icon' => 'identification', 'description' => 'No staff scheduled'],
-            ['title' => 'Pending Tasks', 'value' => '0', 'icon' => 'clipboard-document-list'],
+            ['title' => 'Active Care Plans', 'value' => $activeCarePlans, 'icon' => 'clipboard-document-list'],
         ];
     }
 
     #[Computed]
     public function nurseStats(): array
     {
+        $activeResidents = Resident::active()->count();
+        $activeMedications = Medication::active()->count();
+        $openIncidents = Incident::open()->count();
+
         return [
-            ['title' => 'My Residents', 'value' => '0', 'icon' => 'heart', 'description' => 'No residents assigned'],
-            ['title' => 'Medications Due', 'value' => '0', 'icon' => 'beaker', 'description' => 'Next 2 hours'],
-            ['title' => 'Clinical Alerts', 'value' => '0', 'icon' => 'exclamation-triangle'],
+            ['title' => 'My Residents', 'value' => $activeResidents, 'icon' => 'heart', 'description' => $activeResidents > 0 ? 'Active residents' : 'No residents assigned'],
+            ['title' => 'Active Medications', 'value' => $activeMedications, 'icon' => 'beaker', 'description' => 'Active prescriptions'],
+            ['title' => 'Open Incidents', 'value' => $openIncidents, 'icon' => 'exclamation-triangle', 'description' => $openIncidents > 0 ? 'Require attention' : 'No open incidents'],
         ];
     }
 
     #[Computed]
     public function caregiverStats(): array
     {
+        $activeResidents = Resident::active()->count();
+
         return [
-            ['title' => 'Assigned Residents', 'value' => '0', 'icon' => 'users', 'description' => 'No residents assigned'],
+            ['title' => 'Assigned Residents', 'value' => $activeResidents, 'icon' => 'users', 'description' => $activeResidents > 0 ? 'Active residents' : 'No residents assigned'],
             ['title' => 'Tasks Today', 'value' => '0', 'icon' => 'clipboard-document-check'],
             ['title' => 'Shift Info', 'value' => '-', 'icon' => 'clock', 'description' => 'No shift scheduled'],
         ];
@@ -104,9 +117,9 @@ new class extends Component {
     public function adminActions(): array
     {
         return [
-            ['label' => 'Manage Users', 'href' => '#', 'icon' => 'users'],
+            ['label' => 'Manage Users', 'href' => route('admin.users.index'), 'icon' => 'users'],
             ['label' => 'View Logs', 'href' => '#', 'icon' => 'document-text'],
-            ['label' => 'Settings', 'href' => route('profile.edit'), 'icon' => 'cog-6-tooth'],
+            ['label' => 'Settings', 'href' => route('admin.settings.general'), 'icon' => 'cog-6-tooth'],
         ];
     }
 
@@ -114,7 +127,7 @@ new class extends Component {
     public function managerActions(): array
     {
         return [
-            ['label' => 'Add Resident', 'href' => '#', 'icon' => 'user-plus'],
+            ['label' => 'Add Resident', 'href' => route('residents.create'), 'icon' => 'user-plus'],
             ['label' => 'Create Shift', 'href' => '#', 'icon' => 'calendar'],
             ['label' => 'View Reports', 'href' => '#', 'icon' => 'chart-bar'],
         ];
@@ -124,9 +137,9 @@ new class extends Component {
     public function nurseActions(): array
     {
         return [
-            ['label' => 'Record Vitals', 'href' => '#', 'icon' => 'heart'],
-            ['label' => 'Medication Round', 'href' => '#', 'icon' => 'beaker'],
-            ['label' => 'Incident Report', 'href' => '#', 'icon' => 'exclamation-circle'],
+            ['label' => 'Record Vitals', 'href' => route('vitals.create'), 'icon' => 'heart'],
+            ['label' => 'Medication Round', 'href' => route('medications.index'), 'icon' => 'beaker'],
+            ['label' => 'Incident Report', 'href' => route('incidents.create'), 'icon' => 'exclamation-circle'],
         ];
     }
 
@@ -136,7 +149,7 @@ new class extends Component {
         return [
             ['label' => 'Log Activity', 'href' => '#', 'icon' => 'pencil-square'],
             ['label' => 'Request Help', 'href' => '#', 'icon' => 'hand-raised'],
-            ['label' => 'View Care Plan', 'href' => '#', 'icon' => 'document-text'],
+            ['label' => 'View Care Plans', 'href' => route('care-plans.index'), 'icon' => 'document-text'],
         ];
     }
 }; ?>

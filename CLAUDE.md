@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-CareNest is an AI-enhanced care home management system built with Laravel 12, Livewire v4, Tailwind CSS v4, and Flux UI. It provides role-based dashboards, user/role management, system settings, and AI integration (Groq + Google Gemini) for report generation, document analysis, care assistance, and incident summarization.
+CareNest is an AI-enhanced care home management system built with Laravel 12, Livewire v4, Tailwind CSS v4, and Flux UI. It provides role-based dashboards, user/role management, system settings, resident management, care plans, clinical workflows (medications, vitals, incidents), and AI integration (Groq + Google Gemini) for report generation, document analysis, care assistance, and incident summarization.
 
 ## Development Commands
 
@@ -35,6 +35,9 @@ php artisan carenest:create-super-admin
 
 # Clear seeded test users
 php artisan carenest:clear-test-users
+
+# Build assets for production / ngrok usage
+npm run build
 ```
 
 ## Architecture
@@ -60,15 +63,15 @@ Users can have multiple roles and direct permission overrides. Use `@can('permis
 
 ### Key Directories
 - `app/Actions/Fortify/` - Authentication business logic (user creation, password reset)
-- `app/Concerns/` - Validation traits (`PasswordValidationRules`, `UserValidationRules`, `GeneralSettingsValidationRules`, `AiSettingsValidationRules`)
+- `app/Concerns/` - Validation traits (`PasswordValidationRules`, `UserValidationRules`, `GeneralSettingsValidationRules`, `AiSettingsValidationRules`, `ResidentValidationRules`, `CarePlanValidationRules`, `MedicationValidationRules`, `VitalValidationRules`, `IncidentValidationRules`)
 - `app/Contracts/` - Interfaces (`AiProvider`)
 - `app/DataObjects/` - Value objects (`AiResponse`)
-- `app/Models/` - Eloquent models (`User`, `SystemSetting`)
+- `app/Models/` - Eloquent models (`User`, `SystemSetting`, `Resident`, `CarePlan`, `Medication`, `MedicationLog`, `Vital`, `Incident`)
 - `app/Services/` - Business logic services (`SettingsService`, `AI/GroqProvider`, `AI/GeminiProvider`, `AI/AiManager`)
 - `app/Console/Commands/` - Artisan commands (`CreateSuperAdminCommand`, `ClearTestUsersCommand`)
 - `resources/views/pages/` - Inline Livewire page components organized by feature
 - `resources/views/components/` - Reusable Blade components (dashboard widgets, admin layouts)
-- `database/seeders/` - `RolePermissionSeeder`, `TestUserSeeder`, `SystemSettingsSeeder`
+- `database/seeders/` - `RolePermissionSeeder`, `TestUserSeeder`, `SystemSettingsSeeder`, `ResidentSeeder`, `CarePlanSeeder`, `MedicationSeeder`, `MedicationLogSeeder`, `VitalSeeder`, `IncidentSeeder`
 
 ### Patterns
 - **Inline Livewire Components**: Pages use `⚡` prefix files with PHP + Blade in one file, using `#[Layout]`, `#[Title]`, `#[Computed]`, `#[Locked]`, `#[Url]` attributes
@@ -77,10 +80,14 @@ Users can have multiple roles and direct permission overrides. Use `@can('permis
 - **Global Helper**: `system_setting('key', 'default')` function available everywhere
 - **Action Classes**: Business logic in `app/Actions/`
 - **Database Sessions/Queue**: Both sessions and jobs use database driver
+- **SoftDeletes**: Used on resident-facing models (`Resident`, `CarePlan`, `Medication`, `Incident`) for data safety
+- **Audit Fields**: `created_by`, `updated_by`, `reviewed_by` FK fields on models for traceability
 
 ### Routes
 - Main routes: `routes/web.php`
 - Admin routes: `routes/admin.php` (user management, role management, system settings)
+- Resident routes: `routes/residents.php` (residents CRUD, care plans CRUD)
+- Clinical routes: `routes/clinical.php` (medications, vitals, incidents)
 - Settings routes: `routes/settings.php` (profile, password, appearance, two-factor)
 - Auth routes managed by Fortify
 
@@ -94,6 +101,30 @@ Users can have multiple roles and direct permission overrides. Use `@can('permis
 - `/admin/settings/ai` - AI provider config (Groq/Gemini), use case settings
 - `/admin/settings/chatbot` - Live AI test chat interface
 
+### Residents Module (`routes/residents.php`)
+- `/residents` - Resident list with search, status filter, pagination
+- `/residents/create` - Create resident with personal, admission, medical, emergency contact, next of kin info
+- `/residents/{resident}` - Resident detail with care plans, active medications, recent vitals, incidents
+- `/residents/{resident}/edit` - Edit resident
+- `/care-plans` - Care plan list with search, type/status filters
+- `/care-plans/{carePlan}` - Care plan detail
+- `/care-plans/{carePlan}/edit` - Edit care plan
+- `/residents/{resident}/care-plans/create` - Create care plan for a specific resident
+
+### Clinical Module (`routes/clinical.php`)
+- `/medications` - Medication list with search, status/route filters (permission: `manage-medications`)
+- `/medications/create` - Create medication prescription
+- `/medications/{medication}` - Medication detail with administration history
+- `/medications/{medication}/edit` - Edit medication
+- `/medications/{medication}/administer` - Log medication administration (permission: `administer-medications`)
+- `/vitals` - Vitals list with resident search, date range filters (permission: `manage-medications`)
+- `/vitals/record` - Record vital signs (BP, HR, temp, RR, SpO2, blood sugar, weight, pain, AVPU)
+- `/vitals/{vital}` - Vital signs detail with abnormal value highlighting
+- `/incidents` - Incident list with search, type/severity/status filters (permission: `manage-incidents`)
+- `/incidents/create` - Report incident (permission: `report-incidents`)
+- `/incidents/{incident}` - Incident detail with severity/status badges
+- `/incidents/{incident}/edit` - Edit incident with auto-set reviewer on status change
+
 ### System Settings
 Key-value storage in `system_settings` table with groups: `general`, `branding`, `contact`, `social`, `ai`. Settings are cached via `SettingsService` and shared globally through `AppServiceProvider`. API keys are encrypted with Laravel's `Crypt` facade.
 
@@ -104,6 +135,9 @@ Key-value storage in `system_settings` table with groups: `general`, `branding`,
 - **No external packages** - uses Laravel `Http` facade for API calls
 - **Groq Models**: `llama-3.3-70b-versatile`, `llama-3.1-8b-instant`, `meta-llama/llama-4-scout-17b-16e-instruct`, `qwen/qwen3-32b`
 - **Gemini Models**: `gemini-2.0-flash`, `gemini-2.5-flash`, `gemini-2.5-pro`
+
+### Proxy / Ngrok
+Trusted proxies are configured in `bootstrap/app.php` with `$middleware->trustProxies(at: '*')`. To expose the app via ngrok: run `npm run build` first (Vite dev server is not reachable through the tunnel), then `php artisan serve` and `ngrok http 8000`.
 
 ### Testing
 - PHPUnit with in-memory SQLite
