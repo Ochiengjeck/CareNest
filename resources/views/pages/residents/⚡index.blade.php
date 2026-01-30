@@ -20,6 +20,9 @@ class extends Component {
     #[Url]
     public string $statusFilter = '';
 
+    #[Url]
+    public string $viewMode = 'card';
+
     public ?int $deleteResidentId = null;
 
     #[Computed]
@@ -31,6 +34,35 @@ class extends Component {
             ->when($this->statusFilter, fn ($q) => $q->where('status', $this->statusFilter))
             ->latest()
             ->paginate(15);
+    }
+
+    #[Computed]
+    public function totalCount(): int
+    {
+        return Resident::count();
+    }
+
+    #[Computed]
+    public function activeCount(): int
+    {
+        return Resident::where('status', 'active')->count();
+    }
+
+    #[Computed]
+    public function onLeaveCount(): int
+    {
+        return Resident::where('status', 'on_leave')->count();
+    }
+
+    #[Computed]
+    public function dischargedCount(): int
+    {
+        return Resident::where('status', 'discharged')->count();
+    }
+
+    public function setViewMode(string $mode): void
+    {
+        $this->viewMode = $mode;
     }
 
     public function confirmDelete(int $residentId): void
@@ -72,8 +104,34 @@ class extends Component {
             <flux:subheading>{{ __('Manage care home residents and their information') }}</flux:subheading>
         </div>
 
+        {{-- Summary Stats --}}
+        <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <x-dashboard.stat-card
+                title="Total Residents"
+                :value="$this->totalCount"
+                icon="user-group"
+            />
+            <x-dashboard.stat-card
+                title="Active"
+                :value="$this->activeCount"
+                icon="check-circle"
+                description="Currently in care"
+            />
+            <x-dashboard.stat-card
+                title="On Leave"
+                :value="$this->onLeaveCount"
+                icon="clock"
+            />
+            <x-dashboard.stat-card
+                title="Discharged"
+                :value="$this->dischargedCount"
+                icon="arrow-right-start-on-rectangle"
+            />
+        </div>
+
+        {{-- Toolbar --}}
         <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div class="flex flex-1 gap-4">
+            <div class="flex flex-1 flex-wrap items-center gap-4">
                 <flux:input
                     wire:model.live.debounce.300ms="search"
                     placeholder="Search by name or room..."
@@ -88,6 +146,23 @@ class extends Component {
                     <flux:select.option value="deceased">{{ __('Deceased') }}</flux:select.option>
                     <flux:select.option value="on_leave">{{ __('On Leave') }}</flux:select.option>
                 </flux:select>
+
+                <flux:button.group>
+                    <flux:button
+                        :variant="$viewMode === 'card' ? 'filled' : 'ghost'"
+                        size="sm"
+                        icon="squares-2x2"
+                        wire:click="setViewMode('card')"
+                        title="Card view"
+                    />
+                    <flux:button
+                        :variant="$viewMode === 'table' ? 'filled' : 'ghost'"
+                        size="sm"
+                        icon="table-cells"
+                        wire:click="setViewMode('table')"
+                        title="Table view"
+                    />
+                </flux:button.group>
             </div>
 
             @can('manage-residents')
@@ -97,38 +172,51 @@ class extends Component {
             @endcan
         </div>
 
-        <flux:table>
-            <flux:table.columns>
-                <flux:table.column>{{ __('Resident') }}</flux:table.column>
-                <flux:table.column>{{ __('Age') }}</flux:table.column>
-                <flux:table.column>{{ __('Room') }}</flux:table.column>
-                <flux:table.column>{{ __('Status') }}</flux:table.column>
-                <flux:table.column>{{ __('Admitted') }}</flux:table.column>
-                <flux:table.column>{{ __('Care Plans') }}</flux:table.column>
-                <flux:table.column class="w-24"></flux:table.column>
-            </flux:table.columns>
-
-            <flux:table.rows>
+        {{-- Card Grid View --}}
+        @if($viewMode === 'card')
+            <div class="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
                 @forelse($this->residents as $resident)
-                    <flux:table.row :key="$resident->id">
-                        <flux:table.cell>
-                            <div class="flex items-center gap-3">
-                                @if($resident->photo_path)
-                                    <img src="{{ Storage::url($resident->photo_path) }}" alt="" class="size-8 rounded-full object-cover" />
-                                @else
-                                    <flux:avatar size="sm" name="{{ $resident->full_name }}" />
-                                @endif
-                                <div>
-                                    <flux:link :href="route('residents.show', $resident)" wire:navigate class="font-medium">
-                                        {{ $resident->full_name }}
-                                    </flux:link>
-                                    <div class="text-xs text-zinc-500">{{ $resident->gender === 'male' ? 'M' : ($resident->gender === 'female' ? 'F' : 'O') }}</div>
-                                </div>
+                    <flux:card class="relative flex flex-col items-center p-5 text-center" :key="$resident->id">
+                        {{-- Actions dropdown --}}
+                        @can('manage-residents')
+                            <div class="absolute top-2 right-2">
+                                <flux:dropdown position="bottom" align="end">
+                                    <flux:button variant="ghost" size="sm" icon="ellipsis-horizontal" />
+                                    <flux:menu>
+                                        <flux:menu.item :href="route('residents.edit', $resident)" wire:navigate icon="pencil">
+                                            {{ __('Edit') }}
+                                        </flux:menu.item>
+                                        <flux:menu.separator />
+                                        <flux:menu.item variant="danger" wire:click="confirmDelete({{ $resident->id }})" icon="trash">
+                                            {{ __('Delete') }}
+                                        </flux:menu.item>
+                                    </flux:menu>
+                                </flux:dropdown>
                             </div>
-                        </flux:table.cell>
-                        <flux:table.cell>{{ $resident->age }}</flux:table.cell>
-                        <flux:table.cell>{{ $resident->room_number ?? '-' }}</flux:table.cell>
-                        <flux:table.cell>
+                        @endcan
+
+                        {{-- Photo/Avatar --}}
+                        <a href="{{ route('residents.show', $resident) }}" wire:navigate>
+                            @if($resident->photo_path)
+                                <img src="{{ Storage::url($resident->photo_path) }}" alt=""
+                                     class="size-16 rounded-full object-cover ring-2 ring-zinc-200 dark:ring-zinc-700" />
+                            @else
+                                <flux:avatar size="lg" name="{{ $resident->full_name }}" />
+                            @endif
+                        </a>
+
+                        {{-- Name & demographics --}}
+                        <div class="mt-3">
+                            <flux:link :href="route('residents.show', $resident)" wire:navigate class="font-medium text-sm">
+                                {{ $resident->full_name }}
+                            </flux:link>
+                            <flux:text class="text-xs text-zinc-500">
+                                {{ $resident->age }} {{ __('yrs') }} &middot; {{ ucfirst($resident->gender) }}
+                            </flux:text>
+                        </div>
+
+                        {{-- Status --}}
+                        <div class="mt-2">
                             <flux:badge size="sm" :color="match($resident->status) {
                                 'active' => 'green',
                                 'discharged' => 'amber',
@@ -138,44 +226,133 @@ class extends Component {
                             }">
                                 {{ str_replace('_', ' ', ucfirst($resident->status)) }}
                             </flux:badge>
-                        </flux:table.cell>
-                        <flux:table.cell>{{ $resident->admission_date->format('M d, Y') }}</flux:table.cell>
-                        <flux:table.cell>
-                            <flux:badge size="sm" color="zinc">{{ $resident->care_plans_count }}</flux:badge>
-                        </flux:table.cell>
-                        <flux:table.cell>
-                            <flux:dropdown position="bottom" align="end">
-                                <flux:button variant="ghost" size="sm" icon="ellipsis-horizontal" />
-                                <flux:menu>
-                                    <flux:menu.item :href="route('residents.show', $resident)" wire:navigate icon="eye">
-                                        {{ __('View') }}
-                                    </flux:menu.item>
-                                    @can('manage-residents')
-                                        <flux:menu.item :href="route('residents.edit', $resident)" wire:navigate icon="pencil">
-                                            {{ __('Edit') }}
-                                        </flux:menu.item>
-                                        <flux:menu.separator />
-                                        <flux:menu.item variant="danger" wire:click="confirmDelete({{ $resident->id }})" icon="trash">
-                                            {{ __('Delete') }}
-                                        </flux:menu.item>
-                                    @endcan
-                                </flux:menu>
-                            </flux:dropdown>
-                        </flux:table.cell>
-                    </flux:table.row>
+                        </div>
+
+                        {{-- Room --}}
+                        @if($resident->room_number)
+                            <flux:text class="mt-1.5 text-xs text-zinc-500">
+                                {{ __('Room') }} {{ $resident->room_number }}
+                                @if($resident->bed_number)
+                                    / {{ __('Bed') }} {{ $resident->bed_number }}
+                                @endif
+                            </flux:text>
+                        @endif
+
+                        {{-- Medical indicators --}}
+                        <div class="mt-3 flex flex-wrap justify-center gap-1">
+                            <flux:badge size="sm" :color="match($resident->mobility_status) {
+                                'independent' => 'green',
+                                'assisted' => 'amber',
+                                'wheelchair' => 'blue',
+                                'bedridden' => 'red',
+                                default => 'zinc',
+                            }">{{ ucfirst($resident->mobility_status) }}</flux:badge>
+
+                            <flux:badge size="sm" :color="match($resident->fall_risk_level) {
+                                'low' => 'green',
+                                'medium' => 'amber',
+                                'high' => 'red',
+                                default => 'zinc',
+                            }">{{ ucfirst($resident->fall_risk_level) }} {{ __('Risk') }}</flux:badge>
+                        </div>
+
+                        {{-- View Profile --}}
+                        <flux:button variant="ghost" size="sm" :href="route('residents.show', $resident)" wire:navigate icon="eye" class="mt-3 w-full">
+                            {{ __('View Profile') }}
+                        </flux:button>
+                    </flux:card>
                 @empty
-                    <flux:table.row>
-                        <flux:table.cell colspan="7" class="text-center py-8">
-                            <x-dashboard.empty-state
-                                title="No residents found"
-                                description="Try adjusting your search or filter, or add a new resident."
-                                icon="user-group"
-                            />
-                        </flux:table.cell>
-                    </flux:table.row>
+                    <div class="col-span-full">
+                        <x-dashboard.empty-state
+                            title="No residents found"
+                            description="Try adjusting your search or filter, or add a new resident."
+                            icon="user-group"
+                        />
+                    </div>
                 @endforelse
-            </flux:table.rows>
-        </flux:table>
+            </div>
+        @else
+            {{-- Table View --}}
+            <flux:table>
+                <flux:table.columns>
+                    <flux:table.column>{{ __('Resident') }}</flux:table.column>
+                    <flux:table.column>{{ __('Age') }}</flux:table.column>
+                    <flux:table.column>{{ __('Room') }}</flux:table.column>
+                    <flux:table.column>{{ __('Status') }}</flux:table.column>
+                    <flux:table.column>{{ __('Admitted') }}</flux:table.column>
+                    <flux:table.column>{{ __('Care Plans') }}</flux:table.column>
+                    <flux:table.column class="w-24"></flux:table.column>
+                </flux:table.columns>
+
+                <flux:table.rows>
+                    @forelse($this->residents as $resident)
+                        <flux:table.row :key="$resident->id">
+                            <flux:table.cell>
+                                <div class="flex items-center gap-3">
+                                    @if($resident->photo_path)
+                                        <img src="{{ Storage::url($resident->photo_path) }}" alt="" class="size-8 rounded-full object-cover" />
+                                    @else
+                                        <flux:avatar size="sm" name="{{ $resident->full_name }}" />
+                                    @endif
+                                    <div>
+                                        <flux:link :href="route('residents.show', $resident)" wire:navigate class="font-medium">
+                                            {{ $resident->full_name }}
+                                        </flux:link>
+                                        <div class="text-xs text-zinc-500">{{ $resident->gender === 'male' ? 'M' : ($resident->gender === 'female' ? 'F' : 'O') }}</div>
+                                    </div>
+                                </div>
+                            </flux:table.cell>
+                            <flux:table.cell>{{ $resident->age }}</flux:table.cell>
+                            <flux:table.cell>{{ $resident->room_number ?? '-' }}</flux:table.cell>
+                            <flux:table.cell>
+                                <flux:badge size="sm" :color="match($resident->status) {
+                                    'active' => 'green',
+                                    'discharged' => 'amber',
+                                    'deceased' => 'red',
+                                    'on_leave' => 'blue',
+                                    default => 'zinc',
+                                }">
+                                    {{ str_replace('_', ' ', ucfirst($resident->status)) }}
+                                </flux:badge>
+                            </flux:table.cell>
+                            <flux:table.cell>{{ $resident->admission_date->format('M d, Y') }}</flux:table.cell>
+                            <flux:table.cell>
+                                <flux:badge size="sm" color="zinc">{{ $resident->care_plans_count }}</flux:badge>
+                            </flux:table.cell>
+                            <flux:table.cell>
+                                <flux:dropdown position="bottom" align="end">
+                                    <flux:button variant="ghost" size="sm" icon="ellipsis-horizontal" />
+                                    <flux:menu>
+                                        <flux:menu.item :href="route('residents.show', $resident)" wire:navigate icon="eye">
+                                            {{ __('View') }}
+                                        </flux:menu.item>
+                                        @can('manage-residents')
+                                            <flux:menu.item :href="route('residents.edit', $resident)" wire:navigate icon="pencil">
+                                                {{ __('Edit') }}
+                                            </flux:menu.item>
+                                            <flux:menu.separator />
+                                            <flux:menu.item variant="danger" wire:click="confirmDelete({{ $resident->id }})" icon="trash">
+                                                {{ __('Delete') }}
+                                            </flux:menu.item>
+                                        @endcan
+                                    </flux:menu>
+                                </flux:dropdown>
+                            </flux:table.cell>
+                        </flux:table.row>
+                    @empty
+                        <flux:table.row>
+                            <flux:table.cell colspan="7" class="text-center py-8">
+                                <x-dashboard.empty-state
+                                    title="No residents found"
+                                    description="Try adjusting your search or filter, or add a new resident."
+                                    icon="user-group"
+                                />
+                            </flux:table.cell>
+                        </flux:table.row>
+                    @endforelse
+                </flux:table.rows>
+            </flux:table>
+        @endif
 
         <div class="mt-6">
             {{ $this->residents->links() }}

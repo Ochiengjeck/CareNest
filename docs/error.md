@@ -1,6 +1,6 @@
 # Exception - Internal Server Error
 
-Flux component [icon.external-link] does not exist.
+Flux component [icon.arrow-right-on-rectangle] does not exist.
 
 PHP 8.4.13
 Laravel 12.49.0
@@ -17,7 +17,7 @@ localhost:8000
 6 - vendor\laravel\framework\src\Illuminate\View\View.php:191
 7 - vendor\laravel\framework\src\Illuminate\View\View.php:160
 8 - vendor\laravel\framework\src\Illuminate\View\Concerns\ManagesComponents.php:103
-9 - vendor\livewire\flux\stubs\resources\views\flux\button\index.blade.php:1
+9 - resources\views\components\dashboard\stat-card.blade.php:13
 10 - vendor\livewire\livewire\src\Mechanisms\ExtendBlade\ExtendedCompilerEngine.php:37
 11 - vendor\livewire\livewire\src\Mechanisms\ExtendBlade\ExtendedCompilerEngine.php:38
 12 - vendor\laravel\framework\src\Illuminate\View\Engines\CompilerEngine.php:76
@@ -26,7 +26,7 @@ localhost:8000
 15 - vendor\laravel\framework\src\Illuminate\View\View.php:191
 16 - vendor\laravel\framework\src\Illuminate\View\View.php:160
 17 - vendor\laravel\framework\src\Illuminate\View\Concerns\ManagesComponents.php:103
-18 - storage\framework\views\livewire\views\62fab03e.blade.php:100
+18 - storage\framework\views\livewire\views\87bf043d.blade.php:36
 19 - vendor\livewire\livewire\src\Mechanisms\ExtendBlade\ExtendedCompilerEngine.php:37
 20 - vendor\livewire\livewire\src\Mechanisms\ExtendBlade\ExtendedCompilerEngine.php:38
 21 - vendor\laravel\framework\src\Illuminate\View\Engines\CompilerEngine.php:76
@@ -108,7 +108,7 @@ localhost:8000
 <!--[if ENDBLOCK]><![endif]-->
 ## Request
 
-GET /admin/logs/4
+GET /residents
 
 ## Headers
 
@@ -124,82 +124,36 @@ GET /admin/logs/4
 * **sec-fetch-site**: same-origin
 * **sec-fetch-mode**: cors
 * **sec-fetch-dest**: empty
-* **referer**: http://localhost:8000/admin/logs
+* **referer**: http://localhost:8000/residents/1/edit
 * **accept-encoding**: gzip, deflate, br, zstd
 * **accept-language**: en-US,en;q=0.9
-* **cookie**: XSRF-TOKEN=eyJpdiI6InhhNmY5U1UzN1p1R2NmbmN5V21vblE9PSIsInZhbHVlIjoiRUFLb2VzNW9yQnVVM3ZQRHBqQkViK2hQeDd4ZHNIYzFnK1RWNHdZMUVyN3greUp1dXZHNXZnSnhMc0U0NVNGdm9BVHc5dW5WZ2xnbFhYS3BQbzhlRzJxKzJZb0RGeXVPZUdjZk4zS0EvYk5QL0FvQTllMUFPUlB6NDNiMHFxQjYiLCJtYWMiOiI2YTczNzZhY2YyY2U2ZDBhNzAyYjlhM2I5NzZiZWYyZWZmODE4OTRhY2YyNjZiY2RkY2JmYWJmMzNjOWU4NGIzIiwidGFnIjoiIn0%3D; laravel-session=eyJpdiI6Im5GUC96ZFk3L0puOVk3cnJ0WStDSUE9PSIsInZhbHVlIjoiMXpDN1F0NndRWGlGV0xQeUJRM09tSmRaN0Z0RGVpS3JLdmNKaXFNRHRPVXNzQmlBejVKUmFVZ0w0cW1LdzVrR0tIWTNBZmt6aEhNTU56MXVaTmZOYVNwM2FyeU82ZlNBRUZXL1M4QXBLRE9uOExxcWVLeVV2TFEvcXdsTkI5VmEiLCJtYWMiOiJjYzhiODg2NTI4NjJiNDExZDIzZDE1NDA1YTYzMmNlZmQ1YzM3N2QyNDAxM2Y0MTM0OTgzNjJiYzM0OWE5YWZlIiwidGFnIjoiIn0%3D
+* **cookie**: XSRF-TOKEN=eyJpdiI6IjQwYU9GS0FnNlk1SnVVN09kUldQeGc9PSIsInZhbHVlIjoibXNPU25IZXdLSVF6aUpqbmpUeUgwZEVFTWYrTEFYa0ZMb1pCWFc5enZrQjRSY1N5L0NLOUJpMklnaE5OeHVmRlpST1NDYmVYQVFWNWhFK3AwTWdyeXF3NDFnelBlZ1BidUhyNGErb2grU3dzYmpMYy9TQ0NJQ0JxMEZtUW9DVUYiLCJtYWMiOiIyZjIzYmYzYzIxMjc1ZGM1Njk1MjIzYzM1NmFiYzk0NDFkZTUwZTQxYzQ0MGZiNTBhNmVlNzVlN2NhN2JjMjE3IiwidGFnIjoiIn0%3D; laravel-session=eyJpdiI6IjZ4SVY1VDdkNCtDS0dQWGttbjlJQlE9PSIsInZhbHVlIjoiTXFiYy9mSTB6UjZXZ2V4QzhZMXpkS2tvak1PZVQxdjhkZnlUZ1BOTytVUEt2dFoyUUlHak5xSVB4LzdvYWdSNmUxcmx6SzhvSUV5WFBwU0treDJoSnJaSVlkZDR6cS9MaE9RVVgrTHJmYjBlc1dVa1A3TjNHTE53Y1ZiZzAxNXciLCJtYWMiOiIzODNlMGZmZWZjN2Y4N2E5MmE2ZTBmY2RmNmQ0ZTliODczOWJlZWI4ZmQ5YjZjZTkzOGY2MjU5MmY5Yjc3NGM2IiwidGFnIjoiIn0%3D
 <!--[if ENDBLOCK]><![endif]-->
 ## Route Context
 
 <!--[if BLOCK]><![endif]-->controller: Livewire\Features\SupportRouting\LivewirePageController
-route name: admin.logs.show
-middleware: web, auth, verified, can:view-audit-logs
+route name: residents.index
+middleware: web, auth, verified, can:view-residents
 <!--[if ENDBLOCK]><![endif]-->
 ## Route Parameters
 
-<!--[if BLOCK]><![endif]-->{
-    "auditLog": {
-        "id": 4,
-        "user_id": 1,
-        "action": "created",
-        "auditable_type": "App\\Models\\Resident",
-        "auditable_id": 1,
-        "old_values": null,
-        "new_values": {
-            "first_name": "James",
-            "last_name": "Gichuru",
-            "date_of_birth": "1994-02-23 00:00:00",
-            "gender": "male",
-            "phone": "0765665875",
-            "email": "james@givhuru.com",
-            "admission_date": "2026-01-30 00:00:00",
-            "room_number": "001",
-            "bed_number": "001",
-            "status": "active",
-            "blood_type": "B+",
-            "allergies": "Nuts, Pollen, Bees and Fur",
-            "medical_conditions": "Type 2 Diabetes",
-            "mobility_status": "wheelchair",
-            "dietary_requirements": "More Proteins",
-            "fall_risk_level": "medium",
-            "dnr_status": true,
-            "emergency_contact_name": "Linda Gichuru",
-            "emergency_contact_phone": "0738939982",
-            "emergency_contact_relationship": "Wife",
-            "nok_name": "Linda Gichuru",
-            "nok_phone": "0784833894",
-            "nok_email": "linda@gichuru.com",
-            "nok_relationship": "Wife",
-            "nok_address": "",
-            "notes": "James was brought in by the wife Linda on the daae stated above ",
-            "created_by": 1,
-            "photo_path": "residents/photos/Ebud8421kjMhXyb9aA3TfRypXjMNmQqeoKnYojtk.jpg",
-            "updated_at": "2026-01-30 05:47:20",
-            "created_at": "2026-01-30 05:47:20",
-            "id": 1
-        },
-        "ip_address": "127.0.0.1",
-        "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36 Edg/144.0.0.0",
-        "description": "Resident 'James Gichuru' was created",
-        "created_at": "2026-01-30T05:47:20.000000Z",
-        "updated_at": "2026-01-30T05:47:20.000000Z"
-    }
-}
+<!--[if BLOCK]><![endif]-->No route parameter data available.
 <!--[if ENDBLOCK]><![endif]-->
 ## Database Queries
 
-<!--[if BLOCK]><![endif]-->* sqlite - select * from "cache" where "key" in ('laravel-cache-system_setting:system_name') (3.07 ms)
-* sqlite - select * from "system_settings" where "key" = 'system_name' limit 1 (0.28 ms)
-* sqlite - insert into "cache" ("expiration", "key", "value") values (1769757086, 'laravel-cache-system_setting:system_name', 'N;') on conflict ("key") do update set "expiration" = "excluded"."expiration", "key" = "excluded"."key", "value" = "excluded"."value" (8.28 ms)
-* sqlite - select * from "cache" where "key" in ('laravel-cache-system_setting:logo_path') (0.37 ms)
-* sqlite - select * from "system_settings" where "key" = 'logo_path' limit 1 (0.34 ms)
-* sqlite - insert into "cache" ("expiration", "key", "value") values (1769757086, 'laravel-cache-system_setting:logo_path', 'N;') on conflict ("key") do update set "expiration" = "excluded"."expiration", "key" = "excluded"."key", "value" = "excluded"."value" (9.06 ms)
-* sqlite - select * from "sessions" where "id" = 'XpxvqQ2hPg2POxsuqoRmyHb5GLG2eyXbNMUnQ1W0' limit 1 (0.56 ms)
-* sqlite - select * from "users" where "id" = 1 limit 1 (0.43 ms)
-* sqlite - select * from "audit_logs" where "id" = '4' limit 1 (0.38 ms)
-* sqlite - select * from "cache" where "key" in ('laravel-cache-spatie.permission.cache') (0.26 ms)
+<!--[if BLOCK]><![endif]-->* sqlite - select * from "cache" where "key" in ('laravel-cache-system_setting:system_name') (4.17 ms)
+* sqlite - select * from "system_settings" where "key" = 'system_name' limit 1 (0.35 ms)
+* sqlite - insert into "cache" ("expiration", "key", "value") values (1769782082, 'laravel-cache-system_setting:system_name', 'N;') on conflict ("key") do update set "expiration" = "excluded"."expiration", "key" = "excluded"."key", "value" = "excluded"."value" (82.1 ms)
+* sqlite - select * from "cache" where "key" in ('laravel-cache-system_setting:logo_path') (5.67 ms)
+* sqlite - select * from "system_settings" where "key" = 'logo_path' limit 1 (0.37 ms)
+* sqlite - insert into "cache" ("expiration", "key", "value") values (1769782083, 'laravel-cache-system_setting:logo_path', 'N;') on conflict ("key") do update set "expiration" = "excluded"."expiration", "key" = "excluded"."key", "value" = "excluded"."value" (9.11 ms)
+* sqlite - select * from "sessions" where "id" = 'DKKIkPPIm2KmwZsd3Nt1iqFFUjtzEQLC9MGQrrf7' limit 1 (0.37 ms)
+* sqlite - select * from "users" where "id" = 1 limit 1 (0.59 ms)
+* sqlite - select * from "cache" where "key" in ('laravel-cache-spatie.permission.cache') (0.33 ms)
 * sqlite - select "permissions".*, "model_has_permissions"."model_id" as "pivot_model_id", "model_has_permissions"."permission_id" as "pivot_permission_id", "model_has_permissions"."model_type" as "pivot_model_type" from "permissions" inner join "model_has_permissions" on "permissions"."id" = "model_has_permissions"."permission_id" where "model_has_permissions"."model_id" in (1) and "model_has_permissions"."model_type" = 'App\Models\User' (0.4 ms)
-* sqlite - select "roles".*, "model_has_roles"."model_id" as "pivot_model_id", "model_has_roles"."role_id" as "pivot_role_id", "model_has_roles"."model_type" as "pivot_model_type" from "roles" inner join "model_has_roles" on "roles"."id" = "model_has_roles"."role_id" where "model_has_roles"."model_id" in (1) and "model_has_roles"."model_type" = 'App\Models\User' (0.82 ms)
-* sqlite - select * from "users" where "users"."id" in (1) (0.33 ms)
-* sqlite - select * from "residents" where "residents"."id" = 1 and "residents"."deleted_at" is null limit 1 (0.67 ms)
+* sqlite - select "roles".*, "model_has_roles"."model_id" as "pivot_model_id", "model_has_roles"."role_id" as "pivot_role_id", "model_has_roles"."model_type" as "pivot_model_type" from "roles" inner join "model_has_roles" on "roles"."id" = "model_has_roles"."role_id" where "model_has_roles"."model_id" in (1) and "model_has_roles"."model_type" = 'App\Models\User' (0.3 ms)
+* sqlite - select count(*) as aggregate from "residents" where "residents"."deleted_at" is null (0.36 ms)
+* sqlite - select count(*) as aggregate from "residents" where "status" = 'active' and "residents"."deleted_at" is null (0.29 ms)
+* sqlite - select count(*) as aggregate from "residents" where "status" = 'on_leave' and "residents"."deleted_at" is null (0.24 ms)
+* sqlite - select count(*) as aggregate from "residents" where "status" = 'discharged' and "residents"."deleted_at" is null (0.21 ms)
 <!--[if ENDBLOCK]><![endif]-->
