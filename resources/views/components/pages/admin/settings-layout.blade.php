@@ -12,10 +12,6 @@
                     :current="request()->routeIs('admin.settings.ai')">
                     {{ __('AI Integration') }}
                 </flux:navlist.item>
-                <flux:navlist.item :href="route('admin.settings.chatbot')" wire:navigate
-                    :current="request()->routeIs('admin.settings.chatbot')">
-                    {{ __('AI Chatbot') }}
-                </flux:navlist.item>
             </flux:navlist.group>
         </flux:navlist>
     </div>

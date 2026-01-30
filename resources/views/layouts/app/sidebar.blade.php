@@ -196,6 +196,11 @@
 
         {{ $slot }}
 
+        {{-- Floating AI Chatbot --}}
+        @persist('floating-chatbot')
+        <livewire:floating-chatbot />
+        @endpersist
+
         @fluxScripts
     </body>
 </html>

@@ -36,6 +36,12 @@ class extends Component {
     public ?bool $groqTestSuccess = null;
     public ?bool $geminiTestSuccess = null;
 
+    // Chatbot settings
+    public bool $chatbotEnabled = false;
+    public string $chatbotProvider = 'groq';
+    public string $chatbotModel = 'llama-3.3-70b-versatile';
+    public string $chatbotSystemPrompt = '';
+
     public function mount(): void
     {
         $settings = app(SettingsService::class);
@@ -46,6 +52,12 @@ class extends Component {
 
         $this->groq_configured = !empty($settings->get('groq_api_key'));
         $this->gemini_configured = !empty($settings->get('gemini_api_key'));
+
+        // Chatbot settings
+        $this->chatbotEnabled = (bool) $settings->get('chatbot_enabled', false);
+        $this->chatbotProvider = $settings->get('chatbot_provider', 'groq') ?? 'groq';
+        $this->chatbotModel = $settings->get('chatbot_model', 'llama-3.3-70b-versatile') ?? 'llama-3.3-70b-versatile';
+        $this->chatbotSystemPrompt = $settings->get('chatbot_system_prompt', '') ?? '';
     }
 
     #[Computed]
@@ -188,6 +200,32 @@ class extends Component {
             'gemini' => $this->geminiModels,
             default => [],
         };
+    }
+
+    public function updatedChatbotProvider(): void
+    {
+        $this->chatbotModel = match ($this->chatbotProvider) {
+            'groq' => 'llama-3.3-70b-versatile',
+            'gemini' => 'gemini-2.0-flash',
+            default => 'llama-3.3-70b-versatile',
+        };
+    }
+
+    public function saveChatbotSettings(): void
+    {
+        $this->validate([
+            'chatbotProvider' => ['required', 'in:groq,gemini'],
+            'chatbotModel' => ['required', 'string', 'max:100'],
+            'chatbotSystemPrompt' => ['nullable', 'string', 'max:5000'],
+        ]);
+
+        $settings = app(SettingsService::class);
+        $settings->set('chatbot_enabled', $this->chatbotEnabled ? '1' : '0', 'ai', 'boolean');
+        $settings->set('chatbot_provider', $this->chatbotProvider, 'ai', 'string');
+        $settings->set('chatbot_model', $this->chatbotModel, 'ai', 'string');
+        $settings->set('chatbot_system_prompt', $this->chatbotSystemPrompt, 'ai', 'string');
+
+        $this->dispatch('chatbot-saved');
     }
 }; ?>
 
@@ -386,6 +424,50 @@ class extends Component {
                         @endif
                     </flux:card>
                 @endforeach
+
+                {{-- Chatbot Configuration --}}
+                <div class="pt-4">
+                    <flux:heading size="lg">{{ __('Chatbot Configuration') }}</flux:heading>
+                    <flux:subheading class="mb-4">{{ __('Configure the floating AI assistant available to all users.') }}</flux:subheading>
+                </div>
+
+                <flux:card>
+                    <form wire:submit="saveChatbotSettings" class="space-y-4">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <flux:heading size="sm">{{ __('Enable Chatbot') }}</flux:heading>
+                                <flux:subheading>{{ __('Show floating chat assistant to all authenticated users.') }}</flux:subheading>
+                            </div>
+                            <flux:switch wire:model="chatbotEnabled" />
+                        </div>
+
+                        <div class="grid gap-4 sm:grid-cols-2">
+                            <flux:select wire:model.live="chatbotProvider" :label="__('Provider')">
+                                <flux:select.option value="groq">Groq {{ $groq_configured ? '' : '(Not configured)' }}</flux:select.option>
+                                <flux:select.option value="gemini">Google Gemini {{ $gemini_configured ? '' : '(Not configured)' }}</flux:select.option>
+                            </flux:select>
+
+                            <flux:select wire:model="chatbotModel" :label="__('Model')">
+                                @foreach($this->modelsForProvider($chatbotProvider) as $value => $label)
+                                    <flux:select.option :value="$value">{{ $label }}</flux:select.option>
+                                @endforeach
+                            </flux:select>
+                        </div>
+
+                        <flux:textarea
+                            wire:model="chatbotSystemPrompt"
+                            :label="__('System Prompt')"
+                            rows="3"
+                            :placeholder="__('You are a helpful assistant for CareNest, a care home management system. Help users with questions about residents, care plans, medications, and daily operations.')"
+                        />
+                        <flux:subheading class="text-xs">{{ __('Define the chatbot\'s personality and context. Leave empty for default behavior.') }}</flux:subheading>
+
+                        <div class="flex items-center gap-4">
+                            <flux:button variant="primary" type="submit">{{ __('Save Chatbot Settings') }}</flux:button>
+                            <x-action-message on="chatbot-saved">{{ __('Saved.') }}</x-action-message>
+                        </div>
+                    </form>
+                </flux:card>
             @else
                 <flux:card>
                     <div class="text-center py-8">
