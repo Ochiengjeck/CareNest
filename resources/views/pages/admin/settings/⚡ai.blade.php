@@ -42,6 +42,10 @@ class extends Component {
     public string $chatbotModel = 'llama-3.3-70b-versatile';
     public string $chatbotSystemPrompt = '';
 
+    // Public chatbot settings
+    public bool $publicChatbotEnabled = false;
+    public string $publicChatbotSystemPrompt = '';
+
     public function mount(): void
     {
         $settings = app(SettingsService::class);
@@ -58,6 +62,10 @@ class extends Component {
         $this->chatbotProvider = $settings->get('chatbot_provider', 'groq') ?? 'groq';
         $this->chatbotModel = $settings->get('chatbot_model', 'llama-3.3-70b-versatile') ?? 'llama-3.3-70b-versatile';
         $this->chatbotSystemPrompt = $settings->get('chatbot_system_prompt', '') ?? '';
+
+        // Public chatbot settings
+        $this->publicChatbotEnabled = (bool) $settings->get('public_chatbot_enabled', false);
+        $this->publicChatbotSystemPrompt = $settings->get('public_chatbot_system_prompt', '') ?? '';
     }
 
     #[Computed]
@@ -226,6 +234,19 @@ class extends Component {
         $settings->set('chatbot_system_prompt', $this->chatbotSystemPrompt, 'ai', 'string');
 
         $this->dispatch('chatbot-saved');
+    }
+
+    public function savePublicChatbotSettings(): void
+    {
+        $this->validate([
+            'publicChatbotSystemPrompt' => ['nullable', 'string', 'max:5000'],
+        ]);
+
+        $settings = app(SettingsService::class);
+        $settings->set('public_chatbot_enabled', $this->publicChatbotEnabled ? '1' : '0', 'ai', 'boolean');
+        $settings->set('public_chatbot_system_prompt', $this->publicChatbotSystemPrompt, 'ai', 'string');
+
+        $this->dispatch('public-chatbot-saved');
     }
 }; ?>
 
@@ -465,6 +486,39 @@ class extends Component {
                         <div class="flex items-center gap-4">
                             <flux:button variant="primary" type="submit">{{ __('Save Chatbot Settings') }}</flux:button>
                             <x-action-message on="chatbot-saved">{{ __('Saved.') }}</x-action-message>
+                        </div>
+                    </form>
+                </flux:card>
+
+                {{-- Public Chatbot Configuration --}}
+                <div class="pt-4">
+                    <flux:heading size="lg">{{ __('Public Chatbot') }}</flux:heading>
+                    <flux:subheading class="mb-4">{{ __('Configure the floating AI assistant for public visitors on the welcome page.') }}</flux:subheading>
+                </div>
+
+                <flux:card>
+                    <form wire:submit="savePublicChatbotSettings" class="space-y-4">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <flux:heading size="sm">{{ __('Enable Public Chatbot') }}</flux:heading>
+                                <flux:subheading>{{ __('Show floating chat assistant to visitors on the public welcome page.') }}</flux:subheading>
+                            </div>
+                            <flux:switch wire:model="publicChatbotEnabled" />
+                        </div>
+
+                        <flux:subheading class="text-xs">{{ __('Uses the same provider and model configured for the internal chatbot above. Rate-limited to 10 messages per minute per visitor.') }}</flux:subheading>
+
+                        <flux:textarea
+                            wire:model="publicChatbotSystemPrompt"
+                            :label="__('Public System Prompt')"
+                            rows="3"
+                            :placeholder="__('You are a friendly assistant for CareNest, a professional care home. Help visitors with questions about our services, visiting hours, admission process, and facilities.')"
+                        />
+                        <flux:subheading class="text-xs">{{ __('Define how the chatbot responds to public visitors. Keep it focused on general information — avoid sharing private data.') }}</flux:subheading>
+
+                        <div class="flex items-center gap-4">
+                            <flux:button variant="primary" type="submit">{{ __('Save Public Chatbot Settings') }}</flux:button>
+                            <x-action-message on="public-chatbot-saved">{{ __('Saved.') }}</x-action-message>
                         </div>
                     </form>
                 </flux:card>

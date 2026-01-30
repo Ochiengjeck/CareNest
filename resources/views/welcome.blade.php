@@ -274,5 +274,10 @@
         @if (Route::has('login'))
             <div class="h-14.5 hidden lg:block"></div>
         @endif
+        @php $publicChatbotEnabled = system_setting('public_chatbot_enabled', false); @endphp
+        @if($publicChatbotEnabled)
+            <meta name="csrf-token" content="{{ csrf_token() }}">
+            <x-public-chatbot />
+        @endif
     </body>
 </html>

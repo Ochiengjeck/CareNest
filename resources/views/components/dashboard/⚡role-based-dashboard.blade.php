@@ -1,11 +1,16 @@
 <?php
 
+use App\Models\AuditLog;
 use App\Models\CarePlan;
 use App\Models\Incident;
 use App\Models\Medication;
+use App\Models\MedicationLog;
 use App\Models\Resident;
 use App\Models\Shift;
+use App\Models\TherapistAssignment;
+use App\Models\TherapySession;
 use App\Models\User;
+use App\Models\Vital;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Computed;
 use Livewire\Component;
@@ -48,6 +53,12 @@ new class extends Component {
     }
 
     #[Computed]
+    public function isTherapist(): bool
+    {
+        return in_array('therapist', $this->roles);
+    }
+
+    #[Computed]
     public function hasNoRole(): bool
     {
         return empty($this->roles);
@@ -65,61 +76,22 @@ new class extends Component {
         return 'Good evening';
     }
 
+    // ── Admin ──
+
     #[Computed]
     public function adminStats(): array
     {
-        return [
-            ['title' => 'Total Users', 'value' => User::count(), 'icon' => 'users'],
-            ['title' => 'Active Roles', 'value' => \Spatie\Permission\Models\Role::count(), 'icon' => 'shield-check'],
-            ['title' => 'System Alerts', 'value' => '0', 'icon' => 'bell'],
-        ];
-    }
-
-    #[Computed]
-    public function managerStats(): array
-    {
-        $activeResidents = Resident::active()->count();
-        $activeCarePlans = CarePlan::active()->count();
-        $staffOnDuty = Shift::today()->whereIn('status', ['scheduled', 'in_progress'])->distinct('user_id')->count('user_id');
-
-        return [
-            ['title' => 'Total Residents', 'value' => $activeResidents, 'icon' => 'user-group', 'description' => $activeResidents > 0 ? 'Active residents' : 'No residents registered yet'],
-            ['title' => 'Staff on Duty', 'value' => $staffOnDuty, 'icon' => 'identification', 'description' => $staffOnDuty > 0 ? 'On shift today' : 'No staff scheduled'],
-            ['title' => 'Active Care Plans', 'value' => $activeCarePlans, 'icon' => 'clipboard-document-list'],
-        ];
-    }
-
-    #[Computed]
-    public function nurseStats(): array
-    {
-        $activeResidents = Resident::active()->count();
-        $activeMedications = Medication::active()->count();
+        $totalUsers = User::count();
+        $newUsersThisMonth = User::whereMonth('created_at', now()->month)->whereYear('created_at', now()->year)->count();
         $openIncidents = Incident::open()->count();
+        $criticalIncidents = Incident::open()->where('severity', 'critical')->count();
+        $actionsToday = AuditLog::whereDate('created_at', today())->count();
 
         return [
-            ['title' => 'My Residents', 'value' => $activeResidents, 'icon' => 'heart', 'description' => $activeResidents > 0 ? 'Active residents' : 'No residents assigned'],
-            ['title' => 'Active Medications', 'value' => $activeMedications, 'icon' => 'beaker', 'description' => 'Active prescriptions'],
-            ['title' => 'Open Incidents', 'value' => $openIncidents, 'icon' => 'exclamation-triangle', 'description' => $openIncidents > 0 ? 'Require attention' : 'No open incidents'],
-        ];
-    }
-
-    #[Computed]
-    public function caregiverStats(): array
-    {
-        $activeResidents = Resident::active()->count();
-        $todayShift = Shift::where('user_id', $this->user->id)->today()->first();
-        $shiftValue = '-';
-        $shiftDescription = 'No shift scheduled';
-
-        if ($todayShift) {
-            $shiftValue = $todayShift->type_label;
-            $shiftDescription = \Carbon\Carbon::parse($todayShift->start_time)->format('H:i').' - '.\Carbon\Carbon::parse($todayShift->end_time)->format('H:i');
-        }
-
-        return [
-            ['title' => 'Assigned Residents', 'value' => $activeResidents, 'icon' => 'users', 'description' => $activeResidents > 0 ? 'Active residents' : 'No residents assigned'],
-            ['title' => 'Tasks Today', 'value' => '0', 'icon' => 'clipboard-document-check'],
-            ['title' => 'Shift Info', 'value' => $shiftValue, 'icon' => 'clock', 'description' => $shiftDescription],
+            ['title' => 'Total Users', 'value' => $totalUsers, 'icon' => 'users', 'trend' => $newUsersThisMonth > 0 ? "+{$newUsersThisMonth} this month" : null, 'trendUp' => true],
+            ['title' => 'Active Residents', 'value' => Resident::active()->count(), 'icon' => 'user-group'],
+            ['title' => 'Open Incidents', 'value' => $openIncidents, 'icon' => 'exclamation-triangle', 'description' => $criticalIncidents > 0 ? "{$criticalIncidents} critical" : 'No critical incidents'],
+            ['title' => 'System Activity', 'value' => $actionsToday, 'icon' => 'document-text', 'description' => 'Actions today'],
         ];
     }
 
@@ -128,8 +100,35 @@ new class extends Component {
     {
         return [
             ['label' => 'Manage Users', 'href' => route('admin.users.index'), 'icon' => 'users'],
-            ['label' => 'View Logs', 'href' => '#', 'icon' => 'document-text'],
+            ['label' => 'Audit Logs', 'href' => route('admin.logs.index'), 'icon' => 'document-text'],
             ['label' => 'Settings', 'href' => route('admin.settings.general'), 'icon' => 'cog-6-tooth'],
+        ];
+    }
+
+    #[Computed]
+    public function adminRecentActivity(): \Illuminate\Database\Eloquent\Collection
+    {
+        return AuditLog::with('user')->latest()->take(5)->get();
+    }
+
+    // ── Manager ──
+
+    #[Computed]
+    public function managerStats(): array
+    {
+        $activeResidents = Resident::active()->count();
+        $newThisMonth = Resident::active()->whereMonth('admission_date', now()->month)->whereYear('admission_date', now()->year)->count();
+        $staffOnDuty = Shift::today()->whereIn('status', ['scheduled', 'in_progress'])->distinct('user_id')->count('user_id');
+        $activeCarePlans = CarePlan::active()->count();
+        $reviewDue = CarePlan::active()->whereNotNull('review_date')->where('review_date', '<=', now()->addDays(7))->count();
+        $openIncidents = Incident::open()->count();
+        $severeIncidents = Incident::open()->whereIn('severity', ['critical', 'major'])->count();
+
+        return [
+            ['title' => 'Active Residents', 'value' => $activeResidents, 'icon' => 'user-group', 'trend' => $newThisMonth > 0 ? "+{$newThisMonth} this month" : null, 'trendUp' => true],
+            ['title' => 'Staff on Duty', 'value' => $staffOnDuty, 'icon' => 'identification', 'description' => $staffOnDuty > 0 ? 'On shift today' : 'No staff scheduled'],
+            ['title' => 'Care Plans', 'value' => $activeCarePlans, 'icon' => 'clipboard-document-list', 'description' => $reviewDue > 0 ? "{$reviewDue} due for review" : 'All up to date'],
+            ['title' => 'Open Incidents', 'value' => $openIncidents, 'icon' => 'exclamation-triangle', 'description' => $severeIncidents > 0 ? "{$severeIncidents} critical/major" : 'No severe incidents'],
         ];
     }
 
@@ -144,12 +143,116 @@ new class extends Component {
     }
 
     #[Computed]
+    public function managerCarePlansDueReview(): \Illuminate\Database\Eloquent\Collection
+    {
+        return CarePlan::active()
+            ->whereNotNull('review_date')
+            ->where('review_date', '<=', now()->addDays(7))
+            ->with('resident')
+            ->orderBy('review_date')
+            ->take(5)
+            ->get();
+    }
+
+    #[Computed]
+    public function managerRecentIncidents(): \Illuminate\Database\Eloquent\Collection
+    {
+        return Incident::with('resident')
+            ->latest('occurred_at')
+            ->take(5)
+            ->get();
+    }
+
+    #[Computed]
+    public function managerMedicationOverview(): array
+    {
+        $today = MedicationLog::whereDate('administered_at', today());
+        return [
+            'given' => (clone $today)->where('status', 'given')->count(),
+            'refused' => (clone $today)->where('status', 'refused')->count(),
+            'missed' => (clone $today)->where('status', 'missed')->count(),
+            'withheld' => (clone $today)->where('status', 'withheld')->count(),
+        ];
+    }
+
+    // ── Nurse ──
+
+    #[Computed]
+    public function nurseStats(): array
+    {
+        $activeResidents = Resident::active()->count();
+        $medsToday = MedicationLog::whereDate('administered_at', today())->count();
+        $medsGiven = MedicationLog::whereDate('administered_at', today())->where('status', 'given')->count();
+        $compliance = $medsToday > 0 ? round(($medsGiven / $medsToday) * 100) : 0;
+
+        $abnormalVitals = Vital::where('recorded_at', '>=', now()->subDay())
+            ->with('resident')
+            ->get()
+            ->filter(fn ($v) => $v->hasAbnormalValues())
+            ->count();
+
+        $openIncidents = Incident::open()->count();
+
+        return [
+            ['title' => 'Active Residents', 'value' => $activeResidents, 'icon' => 'heart', 'description' => 'Under care'],
+            ['title' => 'Medications Today', 'value' => $medsToday, 'icon' => 'beaker', 'description' => $medsToday > 0 ? "{$compliance}% compliance" : 'No administrations yet'],
+            ['title' => 'Abnormal Vitals', 'value' => $abnormalVitals, 'icon' => 'exclamation-circle', 'description' => 'In last 24 hours'],
+            ['title' => 'Open Incidents', 'value' => $openIncidents, 'icon' => 'exclamation-triangle', 'description' => $openIncidents > 0 ? 'Require attention' : 'No open incidents'],
+        ];
+    }
+
+    #[Computed]
     public function nurseActions(): array
     {
         return [
             ['label' => 'Record Vitals', 'href' => route('vitals.create'), 'icon' => 'heart'],
             ['label' => 'Medication Round', 'href' => route('medications.index'), 'icon' => 'beaker'],
-            ['label' => 'Incident Report', 'href' => route('incidents.create'), 'icon' => 'exclamation-circle'],
+            ['label' => 'Report Incident', 'href' => route('incidents.create'), 'icon' => 'exclamation-circle'],
+        ];
+    }
+
+    #[Computed]
+    public function nurseAbnormalVitals(): \Illuminate\Support\Collection
+    {
+        return Vital::where('recorded_at', '>=', now()->subDay())
+            ->with('resident')
+            ->latest('recorded_at')
+            ->get()
+            ->filter(fn ($v) => $v->hasAbnormalValues())
+            ->take(5)
+            ->values();
+    }
+
+    #[Computed]
+    public function nurseRecentMedications(): \Illuminate\Database\Eloquent\Collection
+    {
+        return MedicationLog::with(['medication', 'resident'])
+            ->latest('administered_at')
+            ->take(5)
+            ->get();
+    }
+
+    // ── Caregiver ──
+
+    #[Computed]
+    public function caregiverStats(): array
+    {
+        $activeResidents = Resident::active()->count();
+        $todayShift = Shift::where('user_id', $this->user->id)->today()->first();
+        $shiftValue = '-';
+        $shiftDescription = 'No shift scheduled';
+
+        if ($todayShift) {
+            $shiftValue = $todayShift->type_label;
+            $shiftDescription = \Carbon\Carbon::parse($todayShift->start_time)->format('H:i').' - '.\Carbon\Carbon::parse($todayShift->end_time)->format('H:i');
+        }
+
+        $openIncidents = Incident::open()->count();
+
+        return [
+            ['title' => 'Active Residents', 'value' => $activeResidents, 'icon' => 'users', 'description' => 'Under care'],
+            ['title' => 'My Shift', 'value' => $shiftValue, 'icon' => 'clock', 'description' => $shiftDescription],
+            ['title' => 'Open Incidents', 'value' => $openIncidents, 'icon' => 'exclamation-triangle', 'description' => $openIncidents > 0 ? 'Be aware' : 'All clear'],
         ];
     }
 
@@ -157,10 +260,79 @@ new class extends Component {
     public function caregiverActions(): array
     {
         return [
-            ['label' => 'Log Activity', 'href' => '#', 'icon' => 'pencil-square'],
-            ['label' => 'Request Help', 'href' => '#', 'icon' => 'hand-raised'],
+            ['label' => 'View Residents', 'href' => route('residents.index'), 'icon' => 'users'],
+            ['label' => 'Report Incident', 'href' => route('incidents.create'), 'icon' => 'exclamation-circle'],
             ['label' => 'View Care Plans', 'href' => route('care-plans.index'), 'icon' => 'document-text'],
         ];
+    }
+
+    #[Computed]
+    public function caregiverRecentCarePlans(): \Illuminate\Database\Eloquent\Collection
+    {
+        return CarePlan::active()
+            ->with('resident')
+            ->latest()
+            ->take(5)
+            ->get();
+    }
+
+    // ── Therapist ──
+
+    #[Computed]
+    public function therapistStats(): array
+    {
+        $userId = $this->user->id;
+        $myResidents = TherapistAssignment::forTherapist($userId)->active()->count();
+        $todaySessions = TherapySession::forTherapist($userId)->today()->count();
+        $todayCompleted = TherapySession::forTherapist($userId)->today()->completed()->count();
+
+        $weekStart = now()->startOfWeek();
+        $weekEnd = now()->endOfWeek();
+        $weekSessions = TherapySession::forTherapist($userId)->inDateRange($weekStart, $weekEnd)->count();
+
+        $pendingNotes = TherapySession::forTherapist($userId)
+            ->completed()
+            ->where(function ($q) {
+                $q->whereNull('progress_notes')->orWhere('progress_notes', '');
+            })
+            ->count();
+
+        return [
+            ['title' => 'My Residents', 'value' => $myResidents, 'icon' => 'users', 'description' => 'Active assignments'],
+            ['title' => 'Sessions Today', 'value' => $todaySessions, 'icon' => 'clipboard-document-list', 'description' => $todayCompleted > 0 ? "{$todayCompleted} completed" : 'None completed yet'],
+            ['title' => 'This Week', 'value' => $weekSessions, 'icon' => 'calendar', 'description' => 'Total sessions'],
+            ['title' => 'Pending Notes', 'value' => $pendingNotes, 'icon' => 'pencil-square', 'description' => $pendingNotes > 0 ? 'Need documentation' : 'All documented'],
+        ];
+    }
+
+    #[Computed]
+    public function therapistActions(): array
+    {
+        return [
+            ['label' => 'My Dashboard', 'href' => route('therapy.dashboard'), 'icon' => 'heart'],
+            ['label' => 'My Residents', 'href' => route('therapy.my-residents'), 'icon' => 'users'],
+            ['label' => 'Sessions', 'href' => route('therapy.sessions.index'), 'icon' => 'clipboard-document-list'],
+        ];
+    }
+
+    #[Computed]
+    public function therapistTodaySessions(): \Illuminate\Database\Eloquent\Collection
+    {
+        return TherapySession::forTherapist($this->user->id)
+            ->today()
+            ->with('resident')
+            ->orderBy('start_time')
+            ->get();
+    }
+
+    #[Computed]
+    public function therapistUpcomingSessions(): \Illuminate\Database\Eloquent\Collection
+    {
+        return TherapySession::forTherapist($this->user->id)
+            ->upcoming()
+            ->with('resident')
+            ->take(5)
+            ->get();
     }
 }; ?>
 
@@ -182,7 +354,6 @@ new class extends Component {
     </div>
 
     @if($this->hasNoRole)
-        {{-- No Role Assigned --}}
         <x-dashboard.widget-card>
             <x-dashboard.empty-state
                 title="No role assigned"
@@ -191,65 +362,152 @@ new class extends Component {
             />
         </x-dashboard.widget-card>
     @else
-        {{-- Admin Dashboard --}}
+        {{-- ══ Admin Dashboard ══ --}}
         @if($this->isAdmin)
             <div class="space-y-6">
                 <flux:separator text="Administration" />
-                <div class="grid gap-4 md:grid-cols-3">
+                <div class="grid gap-4 md:grid-cols-4">
                     @foreach($this->adminStats as $stat)
                         <x-dashboard.stat-card
                             :title="$stat['title']"
                             :value="$stat['value']"
                             :icon="$stat['icon']"
                             :description="$stat['description'] ?? null"
+                            :trend="$stat['trend'] ?? null"
+                            :trendUp="$stat['trendUp'] ?? true"
                         />
                     @endforeach
                 </div>
                 <div class="grid gap-4 md:grid-cols-2">
                     <x-dashboard.quick-actions :actions="$this->adminActions" title="Admin Actions" />
                     <x-dashboard.widget-card title="Recent Activity" icon="clock">
-                        <x-dashboard.empty-state
-                            title="No recent activity"
-                            description="System activity will appear here"
-                            icon="clock"
-                        />
+                        @if($this->adminRecentActivity->isEmpty())
+                            <flux:text class="text-sm text-zinc-500">No recent activity.</flux:text>
+                        @else
+                            <div class="divide-y divide-zinc-100 dark:divide-zinc-800">
+                                @foreach($this->adminRecentActivity as $log)
+                                    <div class="flex items-center justify-between py-2.5">
+                                        <div class="min-w-0 flex-1">
+                                            <flux:text class="text-sm font-medium truncate">{{ $log->description ?: $log->action_label }}</flux:text>
+                                            <flux:text class="text-xs text-zinc-500">{{ $log->user?->name ?? 'System' }} &middot; {{ $log->created_at->diffForHumans() }}</flux:text>
+                                        </div>
+                                        <flux:badge size="sm" :color="$log->action_color">{{ $log->action_label }}</flux:badge>
+                                    </div>
+                                @endforeach
+                            </div>
+                            <div class="mt-3 pt-3 border-t border-zinc-100 dark:border-zinc-800">
+                                <flux:button variant="ghost" size="sm" :href="route('admin.logs.index')" icon="arrow-right" icon-trailing wire:navigate>
+                                    {{ __('View all logs') }}
+                                </flux:button>
+                            </div>
+                        @endif
                     </x-dashboard.widget-card>
                 </div>
             </div>
         @endif
 
-        {{-- Manager Dashboard --}}
+        {{-- ══ Manager Dashboard ══ --}}
         @if($this->isManager)
             <div class="space-y-6">
                 <flux:separator text="Care Home Management" />
-                <div class="grid gap-4 md:grid-cols-3">
+                <div class="grid gap-4 md:grid-cols-4">
                     @foreach($this->managerStats as $stat)
                         <x-dashboard.stat-card
                             :title="$stat['title']"
                             :value="$stat['value']"
                             :icon="$stat['icon']"
                             :description="$stat['description'] ?? null"
+                            :trend="$stat['trend'] ?? null"
+                            :trendUp="$stat['trendUp'] ?? true"
                         />
                     @endforeach
                 </div>
                 <div class="grid gap-4 md:grid-cols-2">
                     <x-dashboard.quick-actions :actions="$this->managerActions" title="Manager Actions" />
-                    <x-dashboard.widget-card title="Compliance Status" icon="clipboard-document-check">
-                        <x-dashboard.empty-state
-                            title="No compliance data"
-                            description="Training compliance will be tracked here"
-                            icon="academic-cap"
-                        />
+
+                    {{-- Medication Overview --}}
+                    <x-dashboard.widget-card title="Medication Overview" icon="beaker">
+                        @php $medOverview = $this->managerMedicationOverview; $medTotal = array_sum($medOverview); @endphp
+                        @if($medTotal === 0)
+                            <flux:text class="text-sm text-zinc-500">No medications administered today.</flux:text>
+                        @else
+                            <div class="grid grid-cols-4 gap-3 text-center">
+                                <div>
+                                    <div class="text-2xl font-semibold text-green-600 dark:text-green-400">{{ $medOverview['given'] }}</div>
+                                    <flux:text class="text-xs text-zinc-500">Given</flux:text>
+                                </div>
+                                <div>
+                                    <div class="text-2xl font-semibold text-amber-600 dark:text-amber-400">{{ $medOverview['refused'] }}</div>
+                                    <flux:text class="text-xs text-zinc-500">Refused</flux:text>
+                                </div>
+                                <div>
+                                    <div class="text-2xl font-semibold text-red-600 dark:text-red-400">{{ $medOverview['missed'] }}</div>
+                                    <flux:text class="text-xs text-zinc-500">Missed</flux:text>
+                                </div>
+                                <div>
+                                    <div class="text-2xl font-semibold text-blue-600 dark:text-blue-400">{{ $medOverview['withheld'] }}</div>
+                                    <flux:text class="text-xs text-zinc-500">Withheld</flux:text>
+                                </div>
+                            </div>
+                        @endif
+                    </x-dashboard.widget-card>
+                </div>
+                <div class="grid gap-4 md:grid-cols-2">
+                    {{-- Care Plans Due for Review --}}
+                    <x-dashboard.widget-card title="Care Plans Due for Review" icon="clipboard-document-list">
+                        @if($this->managerCarePlansDueReview->isEmpty())
+                            <flux:text class="text-sm text-zinc-500">No care plans due for review.</flux:text>
+                        @else
+                            <div class="divide-y divide-zinc-100 dark:divide-zinc-800">
+                                @foreach($this->managerCarePlansDueReview as $plan)
+                                    <a href="{{ route('care-plans.show', $plan) }}" wire:navigate class="flex items-center justify-between py-2.5 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 -mx-1 px-1 rounded transition-colors">
+                                        <div class="min-w-0 flex-1">
+                                            <flux:text class="text-sm font-medium truncate">{{ $plan->title }}</flux:text>
+                                            <flux:text class="text-xs text-zinc-500">{{ $plan->resident?->full_name }} &middot; Review {{ $plan->review_date->diffForHumans() }}</flux:text>
+                                        </div>
+                                        @if($plan->review_date->isPast())
+                                            <flux:badge size="sm" color="red">Overdue</flux:badge>
+                                        @else
+                                            <flux:badge size="sm" color="amber">Due soon</flux:badge>
+                                        @endif
+                                    </a>
+                                @endforeach
+                            </div>
+                        @endif
+                    </x-dashboard.widget-card>
+
+                    {{-- Recent Incidents --}}
+                    <x-dashboard.widget-card title="Recent Incidents" icon="exclamation-triangle">
+                        @if($this->managerRecentIncidents->isEmpty())
+                            <flux:text class="text-sm text-zinc-500">No incidents recorded.</flux:text>
+                        @else
+                            <div class="divide-y divide-zinc-100 dark:divide-zinc-800">
+                                @foreach($this->managerRecentIncidents as $incident)
+                                    <a href="{{ route('incidents.show', $incident) }}" wire:navigate class="flex items-center justify-between py-2.5 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 -mx-1 px-1 rounded transition-colors">
+                                        <div class="min-w-0 flex-1">
+                                            <flux:text class="text-sm font-medium truncate">{{ $incident->title }}</flux:text>
+                                            <flux:text class="text-xs text-zinc-500">{{ $incident->resident?->full_name }} &middot; {{ $incident->occurred_at->diffForHumans() }}</flux:text>
+                                        </div>
+                                        <flux:badge size="sm" :color="$incident->severity_color">{{ ucfirst($incident->severity) }}</flux:badge>
+                                    </a>
+                                @endforeach
+                            </div>
+                            <div class="mt-3 pt-3 border-t border-zinc-100 dark:border-zinc-800">
+                                <flux:button variant="ghost" size="sm" :href="route('incidents.index')" icon="arrow-right" icon-trailing wire:navigate>
+                                    {{ __('View all incidents') }}
+                                </flux:button>
+                            </div>
+                        @endif
                     </x-dashboard.widget-card>
                 </div>
             </div>
         @endif
 
-        {{-- Nurse Dashboard --}}
+        {{-- ══ Nurse Dashboard ══ --}}
         @if($this->isNurse)
             <div class="space-y-6">
                 <flux:separator text="Clinical Overview" />
-                <div class="grid gap-4 md:grid-cols-3">
+                <div class="grid gap-4 md:grid-cols-4">
                     @foreach($this->nurseStats as $stat)
                         <x-dashboard.stat-card
                             :title="$stat['title']"
@@ -261,18 +519,50 @@ new class extends Component {
                 </div>
                 <div class="grid gap-4 md:grid-cols-2">
                     <x-dashboard.quick-actions :actions="$this->nurseActions" title="Clinical Actions" />
-                    <x-dashboard.widget-card title="Medication Schedule" icon="beaker">
-                        <x-dashboard.empty-state
-                            title="No medications scheduled"
-                            description="Upcoming medication rounds will appear here"
-                            icon="beaker"
-                        />
+
+                    {{-- Abnormal Vitals --}}
+                    <x-dashboard.widget-card title="Vitals Alerts (24h)" icon="exclamation-circle">
+                        @if($this->nurseAbnormalVitals->isEmpty())
+                            <flux:text class="text-sm text-zinc-500">No abnormal vitals in the last 24 hours.</flux:text>
+                        @else
+                            <div class="divide-y divide-zinc-100 dark:divide-zinc-800">
+                                @foreach($this->nurseAbnormalVitals as $vital)
+                                    <a href="{{ route('vitals.show', $vital) }}" wire:navigate class="flex items-center justify-between py-2.5 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 -mx-1 px-1 rounded transition-colors">
+                                        <div class="min-w-0 flex-1">
+                                            <flux:text class="text-sm font-medium truncate">{{ $vital->resident?->full_name }}</flux:text>
+                                            <flux:text class="text-xs text-zinc-500">Recorded {{ $vital->recorded_at->diffForHumans() }}</flux:text>
+                                        </div>
+                                        <flux:badge size="sm" color="red">Abnormal</flux:badge>
+                                    </a>
+                                @endforeach
+                            </div>
+                        @endif
+                    </x-dashboard.widget-card>
+                </div>
+                <div class="grid gap-4 md:grid-cols-1">
+                    {{-- Recent Medications --}}
+                    <x-dashboard.widget-card title="Recent Medication Administrations" icon="beaker">
+                        @if($this->nurseRecentMedications->isEmpty())
+                            <flux:text class="text-sm text-zinc-500">No recent medication administrations.</flux:text>
+                        @else
+                            <div class="divide-y divide-zinc-100 dark:divide-zinc-800">
+                                @foreach($this->nurseRecentMedications as $log)
+                                    <div class="flex items-center justify-between py-2.5">
+                                        <div class="min-w-0 flex-1">
+                                            <flux:text class="text-sm font-medium truncate">{{ $log->medication?->name ?? 'Unknown' }} — {{ $log->medication?->dosage ?? '' }}</flux:text>
+                                            <flux:text class="text-xs text-zinc-500">{{ $log->resident?->full_name }} &middot; {{ $log->administered_at->diffForHumans() }}</flux:text>
+                                        </div>
+                                        <flux:badge size="sm" :color="$log->status_color">{{ ucfirst($log->status) }}</flux:badge>
+                                    </div>
+                                @endforeach
+                            </div>
+                        @endif
                     </x-dashboard.widget-card>
                 </div>
             </div>
         @endif
 
-        {{-- Caregiver Dashboard --}}
+        {{-- ══ Caregiver Dashboard ══ --}}
         @if($this->isCaregiver)
             <div class="space-y-6">
                 <flux:separator text="My Shift" />
@@ -288,14 +578,87 @@ new class extends Component {
                 </div>
                 <div class="grid gap-4 md:grid-cols-2">
                     <x-dashboard.quick-actions :actions="$this->caregiverActions" title="Quick Actions" />
-                    <x-dashboard.widget-card title="Today's Tasks" icon="clipboard-document-list">
-                        <x-dashboard.empty-state
-                            title="No tasks assigned"
-                            description="Your daily tasks will appear here"
-                            icon="clipboard-document-list"
-                        />
+
+                    {{-- Active Care Plans --}}
+                    <x-dashboard.widget-card title="Active Care Plans" icon="clipboard-document-list">
+                        @if($this->caregiverRecentCarePlans->isEmpty())
+                            <flux:text class="text-sm text-zinc-500">No active care plans.</flux:text>
+                        @else
+                            <div class="divide-y divide-zinc-100 dark:divide-zinc-800">
+                                @foreach($this->caregiverRecentCarePlans as $plan)
+                                    <a href="{{ route('care-plans.show', $plan) }}" wire:navigate class="flex items-center justify-between py-2.5 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 -mx-1 px-1 rounded transition-colors">
+                                        <div class="min-w-0 flex-1">
+                                            <flux:text class="text-sm font-medium truncate">{{ $plan->title }}</flux:text>
+                                            <flux:text class="text-xs text-zinc-500">{{ $plan->resident?->full_name }}</flux:text>
+                                        </div>
+                                        <flux:badge size="sm" :color="$plan->status_color">{{ $plan->type_label }}</flux:badge>
+                                    </a>
+                                @endforeach
+                            </div>
+                        @endif
                     </x-dashboard.widget-card>
                 </div>
+            </div>
+        @endif
+
+        {{-- ══ Therapist Dashboard ══ --}}
+        @if($this->isTherapist)
+            <div class="space-y-6">
+                <flux:separator text="Therapy" />
+                <div class="grid gap-4 md:grid-cols-4">
+                    @foreach($this->therapistStats as $stat)
+                        <x-dashboard.stat-card
+                            :title="$stat['title']"
+                            :value="$stat['value']"
+                            :icon="$stat['icon']"
+                            :description="$stat['description'] ?? null"
+                        />
+                    @endforeach
+                </div>
+                <div class="grid gap-4 md:grid-cols-2">
+                    <x-dashboard.quick-actions :actions="$this->therapistActions" title="Therapy Actions" />
+
+                    {{-- Today's Sessions --}}
+                    <x-dashboard.widget-card title="Today's Sessions" icon="clipboard-document-list">
+                        @if($this->therapistTodaySessions->isEmpty())
+                            <flux:text class="text-sm text-zinc-500">No sessions scheduled for today.</flux:text>
+                        @else
+                            <div class="divide-y divide-zinc-100 dark:divide-zinc-800">
+                                @foreach($this->therapistTodaySessions as $session)
+                                    <a href="{{ route('therapy.sessions.show', $session) }}" wire:navigate class="flex items-center justify-between py-2.5 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 -mx-1 px-1 rounded transition-colors">
+                                        <div class="min-w-0 flex-1">
+                                            <flux:text class="text-sm font-medium truncate">{{ $session->resident?->full_name }}</flux:text>
+                                            <flux:text class="text-xs text-zinc-500">{{ $session->formatted_time_range }} &middot; {{ $session->service_type_label }}</flux:text>
+                                        </div>
+                                        <flux:badge size="sm" :color="$session->status_color">{{ $session->status_label }}</flux:badge>
+                                    </a>
+                                @endforeach
+                            </div>
+                        @endif
+                    </x-dashboard.widget-card>
+                </div>
+
+                {{-- Upcoming Sessions --}}
+                @if($this->therapistUpcomingSessions->isNotEmpty())
+                    <x-dashboard.widget-card title="Upcoming Sessions" icon="calendar">
+                        <div class="divide-y divide-zinc-100 dark:divide-zinc-800">
+                            @foreach($this->therapistUpcomingSessions as $session)
+                                <a href="{{ route('therapy.sessions.show', $session) }}" wire:navigate class="flex items-center justify-between py-2.5 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 -mx-1 px-1 rounded transition-colors">
+                                    <div class="min-w-0 flex-1">
+                                        <flux:text class="text-sm font-medium truncate">{{ $session->resident?->full_name }}</flux:text>
+                                        <flux:text class="text-xs text-zinc-500">{{ $session->session_date->format('M d') }} &middot; {{ $session->formatted_time_range }} &middot; {{ $session->service_type_label }}</flux:text>
+                                    </div>
+                                    <flux:badge size="sm" :color="$session->status_color">{{ $session->status_label }}</flux:badge>
+                                </a>
+                            @endforeach
+                        </div>
+                        <div class="mt-3 pt-3 border-t border-zinc-100 dark:border-zinc-800">
+                            <flux:button variant="ghost" size="sm" :href="route('therapy.sessions.index')" icon="arrow-right" icon-trailing wire:navigate>
+                                {{ __('View all sessions') }}
+                            </flux:button>
+                        </div>
+                    </x-dashboard.widget-card>
+                @endif
             </div>
         @endif
     @endif
