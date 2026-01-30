@@ -4,6 +4,8 @@ namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Str;
@@ -79,6 +81,40 @@ class User extends Authenticatable
         return $this->hasAnyRole($roles);
     }
 
+    // Staff relationships
+
+    public function staffProfile(): HasOne
+    {
+        return $this->hasOne(StaffProfile::class);
+    }
+
+    public function qualifications(): HasMany
+    {
+        return $this->hasMany(Qualification::class);
+    }
+
+    public function shifts(): HasMany
+    {
+        return $this->hasMany(Shift::class);
+    }
+
+    // Therapy relationships
+
+    public function therapistAssignments(): HasMany
+    {
+        return $this->hasMany(TherapistAssignment::class, 'therapist_id');
+    }
+
+    public function therapySessions(): HasMany
+    {
+        return $this->hasMany(TherapySession::class, 'therapist_id');
+    }
+
+    public function assignedResidents(): HasMany
+    {
+        return $this->hasMany(TherapistAssignment::class, 'therapist_id')->where('status', 'active');
+    }
+
     /**
      * Get dashboard widgets based on user's roles
      */
@@ -101,6 +137,10 @@ class User extends Authenticatable
 
         if (in_array('caregiver', $roles)) {
             $widgets = array_merge($widgets, ['assigned-residents', 'daily-tasks', 'shift-info']);
+        }
+
+        if (in_array('therapist', $roles)) {
+            $widgets = array_merge($widgets, ['therapy-sessions-today', 'my-therapy-residents', 'upcoming-sessions']);
         }
 
         return array_unique($widgets);

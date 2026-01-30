@@ -21,10 +21,16 @@ trait ResidentValidationRules
     {
         return [
             'admission_date' => ['required', 'date'],
-            'discharge_date' => ['nullable', 'date', 'after_or_equal:admission_date'],
             'room_number' => ['nullable', 'string', 'max:50'],
             'bed_number' => ['nullable', 'string', 'max:50'],
             'status' => ['required', 'string', 'in:active,discharged,deceased,on_leave'],
+        ];
+    }
+
+    protected function dischargeDateRules(): array
+    {
+        return [
+            'discharge_date' => ['nullable', 'date', 'after_or_equal:admission_date'],
         ];
     }
 

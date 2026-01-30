@@ -14,14 +14,19 @@ class DatabaseSeeder extends Seeder
     {
         $this->call([
             RolePermissionSeeder::class,
-            TestUserSeeder::class,
-            SystemSettingsSeeder::class,
-            ResidentSeeder::class,
-            CarePlanSeeder::class,
-            MedicationSeeder::class,
-            MedicationLogSeeder::class,
-            VitalSeeder::class,
-            IncidentSeeder::class,
+            // TestUserSeeder::class,
+            // SystemSettingsSeeder::class,
+            // ResidentSeeder::class,
+            // CarePlanSeeder::class,
+            // MedicationSeeder::class,
+            // MedicationLogSeeder::class,
+            // VitalSeeder::class,
+            // IncidentSeeder::class,
+            // StaffProfileSeeder::class,
+            // QualificationSeeder::class,
+            // ShiftSeeder::class,
+            // TherapistAssignmentSeeder::class,
+            // TherapySessionSeeder::class,
         ]);
     }
 }

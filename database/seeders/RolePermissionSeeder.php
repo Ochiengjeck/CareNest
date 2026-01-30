@@ -34,6 +34,11 @@ class RolePermissionSeeder extends Seeder
             'manage-care-plans',
             'view-care-plans',
 
+            // Therapy
+            'manage-therapy',
+            'view-therapy',
+            'conduct-therapy',
+
             // Activities & Incidents
             'log-activities',
             'manage-incidents',
@@ -63,6 +68,8 @@ class RolePermissionSeeder extends Seeder
             'manage-medications',
             'manage-care-plans',
             'view-care-plans',
+            'manage-therapy',
+            'view-therapy',
             'log-activities',
             'manage-incidents',
             'report-incidents',
@@ -77,6 +84,7 @@ class RolePermissionSeeder extends Seeder
             'administer-medications',
             'manage-care-plans',
             'view-care-plans',
+            'view-therapy',
             'log-activities',
             'manage-incidents',
             'report-incidents',
@@ -89,6 +97,15 @@ class RolePermissionSeeder extends Seeder
             'view-care-plans',
             'log-activities',
             'report-incidents',
+        ]);
+
+        $therapist = Role::firstOrCreate(['name' => 'therapist']);
+        $therapist->syncPermissions([
+            'view-residents',
+            'view-care-plans',
+            'view-therapy',
+            'conduct-therapy',
+            'view-reports',
         ]);
     }
 }

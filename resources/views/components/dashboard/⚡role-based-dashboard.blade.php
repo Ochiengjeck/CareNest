@@ -4,6 +4,7 @@ use App\Models\CarePlan;
 use App\Models\Incident;
 use App\Models\Medication;
 use App\Models\Resident;
+use App\Models\Shift;
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Computed;
@@ -79,10 +80,11 @@ new class extends Component {
     {
         $activeResidents = Resident::active()->count();
         $activeCarePlans = CarePlan::active()->count();
+        $staffOnDuty = Shift::today()->whereIn('status', ['scheduled', 'in_progress'])->distinct('user_id')->count('user_id');
 
         return [
             ['title' => 'Total Residents', 'value' => $activeResidents, 'icon' => 'user-group', 'description' => $activeResidents > 0 ? 'Active residents' : 'No residents registered yet'],
-            ['title' => 'Staff on Duty', 'value' => '0', 'icon' => 'identification', 'description' => 'No staff scheduled'],
+            ['title' => 'Staff on Duty', 'value' => $staffOnDuty, 'icon' => 'identification', 'description' => $staffOnDuty > 0 ? 'On shift today' : 'No staff scheduled'],
             ['title' => 'Active Care Plans', 'value' => $activeCarePlans, 'icon' => 'clipboard-document-list'],
         ];
     }
@@ -105,11 +107,19 @@ new class extends Component {
     public function caregiverStats(): array
     {
         $activeResidents = Resident::active()->count();
+        $todayShift = Shift::where('user_id', $this->user->id)->today()->first();
+        $shiftValue = '-';
+        $shiftDescription = 'No shift scheduled';
+
+        if ($todayShift) {
+            $shiftValue = $todayShift->type_label;
+            $shiftDescription = \Carbon\Carbon::parse($todayShift->start_time)->format('H:i').' - '.\Carbon\Carbon::parse($todayShift->end_time)->format('H:i');
+        }
 
         return [
             ['title' => 'Assigned Residents', 'value' => $activeResidents, 'icon' => 'users', 'description' => $activeResidents > 0 ? 'Active residents' : 'No residents assigned'],
             ['title' => 'Tasks Today', 'value' => '0', 'icon' => 'clipboard-document-check'],
-            ['title' => 'Shift Info', 'value' => '-', 'icon' => 'clock', 'description' => 'No shift scheduled'],
+            ['title' => 'Shift Info', 'value' => $shiftValue, 'icon' => 'clock', 'description' => $shiftDescription],
         ];
     }
 
@@ -128,8 +138,8 @@ new class extends Component {
     {
         return [
             ['label' => 'Add Resident', 'href' => route('residents.create'), 'icon' => 'user-plus'],
-            ['label' => 'Create Shift', 'href' => '#', 'icon' => 'calendar'],
-            ['label' => 'View Reports', 'href' => '#', 'icon' => 'chart-bar'],
+            ['label' => 'Create Shift', 'href' => route('shifts.create'), 'icon' => 'calendar'],
+            ['label' => 'View Reports', 'href' => route('reports.index'), 'icon' => 'chart-bar'],
         ];
     }
 

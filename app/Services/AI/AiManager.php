@@ -108,6 +108,31 @@ class AiManager
                 'icon' => 'exclamation-triangle',
                 'recommended_provider' => 'groq',
             ],
+            'therapy_reporting' => [
+                'label' => 'Therapy Session Reporting',
+                'description' => 'Generate professional therapy session notes and progress reports',
+                'icon' => 'clipboard-document-check',
+                'recommended_provider' => 'groq',
+            ],
         ];
+    }
+
+    public function isUseCaseEnabled(string $useCase): bool
+    {
+        $config = $this->getUseCaseConfig($useCase);
+
+        return $config['enabled'] ?? false;
+    }
+
+    public function getUseCaseProvider(string $useCase): string
+    {
+        $config = $this->getUseCaseConfig($useCase);
+
+        return $config['provider'] ?? 'groq';
+    }
+
+    public function isConfigured(string $provider): bool
+    {
+        return $this->provider($provider)->isConfigured();
     }
 }

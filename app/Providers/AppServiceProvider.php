@@ -2,11 +2,22 @@
 
 namespace App\Providers;
 
+use App\Listeners\LogAuthenticationEvents;
+use App\Models\CarePlan;
+use App\Models\Incident;
+use App\Models\Medication;
+use App\Models\Resident;
+use App\Models\User;
+use App\Observers\AuditableObserver;
 use App\Services\AI\AiManager;
 use App\Services\SettingsService;
 use Carbon\CarbonImmutable;
+use Illuminate\Auth\Events\Failed;
+use Illuminate\Auth\Events\Login;
+use Illuminate\Auth\Events\Logout;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
@@ -29,6 +40,8 @@ class AppServiceProvider extends ServiceProvider
     {
         $this->configureDefaults();
         $this->shareSettings();
+        $this->registerAuditObservers();
+        $this->registerAuthListeners();
     }
 
     protected function configureDefaults(): void
@@ -64,5 +77,29 @@ class AppServiceProvider extends ServiceProvider
         } catch (\Exception) {
             // Table may not exist yet during migrations
         }
+    }
+
+    protected function registerAuditObservers(): void
+    {
+        try {
+            $observer = new AuditableObserver;
+
+            User::observe($observer);
+            Resident::observe($observer);
+            CarePlan::observe($observer);
+            Medication::observe($observer);
+            Incident::observe($observer);
+        } catch (\Exception) {
+            // Table may not exist yet during migrations
+        }
+    }
+
+    protected function registerAuthListeners(): void
+    {
+        $listener = new LogAuthenticationEvents;
+
+        Event::listen(Login::class, [$listener, 'handleLogin']);
+        Event::listen(Logout::class, [$listener, 'handleLogout']);
+        Event::listen(Failed::class, [$listener, 'handleFailed']);
     }
 }

@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-CareNest is an AI-enhanced care home management system built with Laravel 12, Livewire v4, Tailwind CSS v4, and Flux UI. It provides role-based dashboards, user/role management, system settings, resident management, care plans, clinical workflows (medications, vitals, incidents), and AI integration (Groq + Google Gemini) for report generation, document analysis, care assistance, and incident summarization.
+CareNest is an AI-enhanced care home management system built with Laravel 12, Livewire v4, Tailwind CSS v4, and Flux UI. It provides role-based dashboards, user/role management, system settings, resident management, care plans, clinical workflows (medications, vitals, incidents), therapy management with session documentation, and AI integration (Groq + Google Gemini) for report generation, document analysis, care assistance, incident summarization, and therapy session reporting.
 
 ## Development Commands
 
@@ -51,13 +51,14 @@ npm run build
 - **Database**: SQLite (dev), configurable for production
 
 ### Roles & Permissions
-Four roles with 16 permissions across 6 groups:
-- `system_admin` - Full system access (all 16 permissions)
-- `care_home_manager` - Operational oversight (13 permissions)
-- `nurse` - Clinical focus (9 permissions)
+Five roles with 19 permissions across 7 groups:
+- `system_admin` - Full system access (all 19 permissions)
+- `care_home_manager` - Operational oversight (15 permissions)
+- `nurse` - Clinical focus (10 permissions)
 - `caregiver` - Daily care tasks (5 permissions)
+- `therapist` - Therapy focus (5 permissions: view-residents, view-care-plans, view-therapy, conduct-therapy, view-reports)
 
-Permission groups: User & System, Residents, Staff, Clinical, Activities & Incidents, Reports.
+Permission groups: User & System, Residents, Staff, Clinical, Therapy, Activities & Incidents, Reports.
 
 Users can have multiple roles and direct permission overrides. Use `@can('permission-name')` in Blade.
 

@@ -74,5 +74,27 @@ class TestUserSeeder extends Seeder
                 'email_verified_at' => now(),
             ]
         );
+
+        // Therapist
+        $therapist = User::firstOrCreate(
+            ['email' => 'therapist@carenest.test'],
+            [
+                'name' => 'Test Therapist',
+                'password' => Hash::make('password'),
+                'email_verified_at' => now(),
+            ]
+        );
+        $therapist->assignRole('therapist');
+
+        // Second Therapist for testing
+        $therapist2 = User::firstOrCreate(
+            ['email' => 'therapist2@carenest.test'],
+            [
+                'name' => 'Sarah Johnson',
+                'password' => Hash::make('password'),
+                'email_verified_at' => now(),
+            ]
+        );
+        $therapist2->assignRole('therapist');
     }
 }

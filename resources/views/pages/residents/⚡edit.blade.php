@@ -107,6 +107,7 @@ class extends Component {
         $validated = $this->validate([
             ...$this->personalInfoRules(),
             ...$this->admissionRules(),
+            ...$this->dischargeDateRules(),
             ...$this->medicalRules(),
             ...$this->emergencyContactRules(),
             ...$this->nextOfKinRules(),

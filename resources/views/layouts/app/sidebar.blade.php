@@ -29,7 +29,7 @@
                     </flux:sidebar.item>
                     @endcan
                     @can('view-audit-logs')
-                    <flux:sidebar.item icon="document-text" href="#" :current="request()->routeIs('admin.logs.*')">
+                    <flux:sidebar.item icon="document-text" :href="route('admin.logs.index')" :current="request()->routeIs('admin.logs.*')" wire:navigate>
                         {{ __('Audit Logs') }}
                     </flux:sidebar.item>
                     @endcan
@@ -65,21 +65,53 @@
                 {{-- Staff Navigation --}}
                 @can('view-staff')
                 <flux:sidebar.group :heading="__('Staff')" class="grid">
-                    <flux:sidebar.item icon="identification" href="#" :current="request()->routeIs('staff.*')">
+                    <flux:sidebar.item icon="identification" :href="route('staff.index')" :current="request()->routeIs('staff.*')" wire:navigate>
                         {{ __('Staff Directory') }}
                     </flux:sidebar.item>
                     @can('manage-staff')
-                    <flux:sidebar.item icon="calendar" href="#" :current="request()->routeIs('shifts.*')">
+                    <flux:sidebar.item icon="calendar" :href="route('shifts.index')" :current="request()->routeIs('shifts.*')" wire:navigate>
                         {{ __('Shift Schedule') }}
                     </flux:sidebar.item>
                     @endcan
                 </flux:sidebar.group>
                 @endcan
 
+                {{-- Therapy Navigation --}}
+                @canany(['view-therapy', 'conduct-therapy', 'manage-therapy'])
+                <flux:sidebar.group :heading="__('Therapy')" class="grid">
+                    @if(auth()->user()->hasRole('therapist'))
+                    <flux:sidebar.item icon="heart" :href="route('therapy.dashboard')" :current="request()->routeIs('therapy.dashboard')" wire:navigate>
+                        {{ __('My Dashboard') }}
+                    </flux:sidebar.item>
+                    <flux:sidebar.item icon="users" :href="route('therapy.my-residents')" :current="request()->routeIs('therapy.my-residents')" wire:navigate>
+                        {{ __('My Residents') }}
+                    </flux:sidebar.item>
+                    @endif
+                    @canany(['view-therapy', 'conduct-therapy'])
+                    <flux:sidebar.item icon="clipboard-document-list" :href="route('therapy.sessions.index')" :current="request()->routeIs('therapy.sessions.*')" wire:navigate>
+                        {{ __('Sessions') }}
+                    </flux:sidebar.item>
+                    @endcanany
+                    @can('manage-therapy')
+                    <flux:sidebar.item icon="user-group" :href="route('therapy.therapists.index')" :current="request()->routeIs('therapy.therapists.*')" wire:navigate>
+                        {{ __('Therapists') }}
+                    </flux:sidebar.item>
+                    <flux:sidebar.item icon="arrows-right-left" :href="route('therapy.assignments.index')" :current="request()->routeIs('therapy.assignments.*')" wire:navigate>
+                        {{ __('Assignments') }}
+                    </flux:sidebar.item>
+                    @endcan
+                    @can('view-reports')
+                    <flux:sidebar.item icon="document-chart-bar" :href="route('therapy.reports.generate')" :current="request()->routeIs('therapy.reports.*')" wire:navigate>
+                        {{ __('Generate Reports') }}
+                    </flux:sidebar.item>
+                    @endcan
+                </flux:sidebar.group>
+                @endcanany
+
                 {{-- Reports Navigation --}}
                 @can('view-reports')
                 <flux:sidebar.group :heading="__('Reports')" class="grid">
-                    <flux:sidebar.item icon="chart-bar" href="#" :current="request()->routeIs('reports.*')">
+                    <flux:sidebar.item icon="chart-bar" :href="route('reports.index')" :current="request()->routeIs('reports.*')" wire:navigate>
                         {{ __('Reports') }}
                     </flux:sidebar.item>
                     @can('manage-incidents')

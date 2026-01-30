@@ -24,3 +24,9 @@ Route::middleware(['auth', 'verified', 'can:manage-settings'])->prefix('admin')-
     Route::livewire('settings/ai', 'pages::admin.settings.ai')->name('admin.settings.ai');
     Route::livewire('settings/chatbot', 'pages::admin.settings.chatbot')->name('admin.settings.chatbot');
 });
+
+// Audit Logs (requires view-audit-logs permission)
+Route::middleware(['auth', 'verified', 'can:view-audit-logs'])->prefix('admin')->group(function () {
+    Route::livewire('logs', 'pages::admin.logs.index')->name('admin.logs.index');
+    Route::livewire('logs/{auditLog}', 'pages::admin.logs.show')->name('admin.logs.show');
+});
