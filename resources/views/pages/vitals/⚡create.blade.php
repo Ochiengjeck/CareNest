@@ -96,7 +96,7 @@ class extends Component {
                     <flux:input wire:model="blood_pressure_systolic" :label="__('BP Systolic (mmHg)')" type="number" min="40" max="300" placeholder="120" />
                     <flux:input wire:model="blood_pressure_diastolic" :label="__('BP Diastolic (mmHg)')" type="number" min="20" max="200" placeholder="80" />
                     <flux:input wire:model="heart_rate" :label="__('Heart Rate (bpm)')" type="number" min="20" max="250" placeholder="72" />
-                    <flux:input wire:model="temperature" :label="__('Temperature (°C)')" type="number" step="0.1" min="30" max="45" placeholder="36.6" />
+                    <flux:input wire:model="temperature" :label="__('Temperature (°F)')" type="number" step="0.1" min="86" max="113" placeholder="98.6" />
                     <flux:input wire:model="respiratory_rate" :label="__('Respiratory Rate (/min)')" type="number" min="5" max="60" placeholder="16" />
                     <flux:input wire:model="oxygen_saturation" :label="__('SpO2 (%)')" type="number" min="0" max="100" placeholder="98" />
                     <flux:input wire:model="blood_sugar" :label="__('Blood Sugar (mmol/L)')" type="number" step="0.1" min="0" max="50" placeholder="5.5" />

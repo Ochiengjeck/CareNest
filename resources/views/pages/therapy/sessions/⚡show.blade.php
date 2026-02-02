@@ -170,7 +170,7 @@ class extends Component {
                             </div>
                         </div>
                         <div class="mt-2">
-                            <flux:button variant="ghost" size="sm" :href="route('residents.show', $this->session->resident)" wire:navigate icon="external-link">
+                            <flux:button variant="ghost" size="sm" :href="route('residents.show', $this->session->resident)" wire:navigate icon="arrow-top-right-on-square">
                                 {{ __('View Resident Profile') }}
                             </flux:button>
                         </div>

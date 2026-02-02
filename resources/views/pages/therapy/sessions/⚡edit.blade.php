@@ -109,7 +109,7 @@ class extends Component {
 
     public function save(): void
     {
-        $validated = $this->validate($this->therapySessionRules());
+        $validated = $this->validate($this->therapySessionEditRules());
         $validated['updated_by'] = auth()->id();
 
         if (empty($validated['challenge_index'])) {

@@ -122,8 +122,8 @@ class extends Component {
                         </flux:table.cell>
                         <flux:table.cell>
                             @if($vital->temperature)
-                                <span @class(['text-red-500 font-medium' => $vital->temperature > 37.8 || $vital->temperature < 36.0])>
-                                    {{ $vital->temperature }}°C
+                                <span @class(['text-red-500 font-medium' => $vital->temperature > 100.0 || $vital->temperature < 96.8])>
+                                    {{ $vital->temperature }}°F
                                 </span>
                             @else
                                 <flux:text class="text-zinc-400">-</flux:text>

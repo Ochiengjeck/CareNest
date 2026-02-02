@@ -90,8 +90,8 @@ class extends Component {
                 <div class="rounded-lg border border-zinc-200 p-4 dark:border-zinc-700">
                     <flux:subheading size="sm">{{ __('Temperature') }}</flux:subheading>
                     @if($this->vital->temperature)
-                        <flux:text class="text-2xl font-semibold {{ ($this->vital->temperature > 37.8 || $this->vital->temperature < 36.0) ? 'text-red-500' : '' }}">
-                            {{ $this->vital->temperature }} <span class="text-sm font-normal text-zinc-500">°C</span>
+                        <flux:text class="text-2xl font-semibold {{ ($this->vital->temperature > 100.0 || $this->vital->temperature < 96.8) ? 'text-red-500' : '' }}">
+                            {{ $this->vital->temperature }} <span class="text-sm font-normal text-zinc-500">°F</span>
                         </flux:text>
                     @else
                         <flux:text class="text-zinc-400">{{ __('Not recorded') }}</flux:text>

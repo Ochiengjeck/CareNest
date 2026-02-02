@@ -28,55 +28,53 @@ class extends Component {
 
 <flux:main>
     <div class="max-w-3xl space-y-6">
-        {{-- Header --}}
-        <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div class="flex items-center gap-4">
-                <flux:button variant="ghost" :href="route('care-plans.index')" wire:navigate icon="arrow-left" />
-                <div>
-                    <flux:heading size="xl">{{ $this->carePlan->title }}</flux:heading>
-                    <div class="mt-1 flex flex-wrap items-center gap-2">
-                        <flux:badge size="sm" color="zinc">{{ $this->carePlan->type_label }}</flux:badge>
-                        <flux:badge size="sm" :color="$this->carePlan->status_color">
-                            {{ str_replace('_', ' ', ucfirst($this->carePlan->status)) }}
-                        </flux:badge>
-                    </div>
-                </div>
-            </div>
-
-            @can('manage-care-plans')
-                <flux:button variant="primary" :href="route('care-plans.edit', $this->carePlan)" wire:navigate icon="pencil">
-                    {{ __('Edit') }}
-                </flux:button>
-            @endcan
-        </div>
-
-        {{-- Resident Info --}}
-        @if($this->carePlan->resident)
-            <flux:card class="space-y-3">
-                <flux:heading size="sm">{{ __('Resident') }}</flux:heading>
-                <flux:separator />
-                <div class="flex items-center gap-3">
-                    @if($this->carePlan->resident->photo_path)
-                        <img src="{{ Storage::url($this->carePlan->resident->photo_path) }}" alt="" class="size-10 rounded-full object-cover" />
-                    @else
-                        <flux:avatar size="sm" name="{{ $this->carePlan->resident->full_name }}" />
-                    @endif
+        {{-- Enhanced Header --}}
+        <flux:card class="p-6">
+            <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                <div class="flex items-start gap-4">
+                    <flux:button variant="ghost" :href="route('care-plans.index')" wire:navigate icon="arrow-left" />
                     <div>
-                        <flux:link :href="route('residents.show', $this->carePlan->resident)" wire:navigate class="font-medium">
-                            {{ $this->carePlan->resident->full_name }}
-                        </flux:link>
-                        <div class="text-xs text-zinc-500">
-                            {{ $this->carePlan->resident->age }} {{ __('years old') }}
-                            @if($this->carePlan->resident->room_number)
-                                &middot; {{ __('Room') }} {{ $this->carePlan->resident->room_number }}
-                            @endif
+                        <flux:heading size="xl">{{ $this->carePlan->title }}</flux:heading>
+                        <div class="mt-1.5 flex flex-wrap items-center gap-2">
+                            <flux:badge size="sm" color="zinc">{{ $this->carePlan->type_label }}</flux:badge>
+                            <flux:badge size="sm" :color="$this->carePlan->status_color">
+                                {{ str_replace('_', ' ', ucfirst($this->carePlan->status)) }}
+                            </flux:badge>
                         </div>
+
+                        {{-- Resident Info inline --}}
+                        @if($this->carePlan->resident)
+                            <div class="mt-3 flex items-center gap-3">
+                                @if($this->carePlan->resident->photo_path)
+                                    <img src="{{ Storage::url($this->carePlan->resident->photo_path) }}" alt="" class="size-10 rounded-full object-cover ring-2 ring-zinc-200 dark:ring-zinc-700" />
+                                @else
+                                    <flux:avatar size="sm" name="{{ $this->carePlan->resident->full_name }}" />
+                                @endif
+                                <div>
+                                    <flux:link :href="route('residents.show', $this->carePlan->resident)" wire:navigate class="font-medium text-sm">
+                                        {{ $this->carePlan->resident->full_name }}
+                                    </flux:link>
+                                    <flux:text class="text-xs text-zinc-500">
+                                        {{ $this->carePlan->resident->age }} {{ __('years old') }}
+                                        @if($this->carePlan->resident->room_number)
+                                            &middot; {{ __('Room') }} {{ $this->carePlan->resident->room_number }}
+                                        @endif
+                                    </flux:text>
+                                </div>
+                            </div>
+                        @endif
                     </div>
                 </div>
-            </flux:card>
-        @endif
 
-        {{-- Dates --}}
+                @can('manage-care-plans')
+                    <flux:button variant="primary" :href="route('care-plans.edit', $this->carePlan)" wire:navigate icon="pencil">
+                        {{ __('Edit') }}
+                    </flux:button>
+                @endcan
+            </div>
+        </flux:card>
+
+        {{-- Schedule --}}
         <flux:card class="space-y-3">
             <flux:heading size="sm">{{ __('Schedule') }}</flux:heading>
             <flux:separator />
@@ -87,7 +85,20 @@ class extends Component {
                 </div>
                 <div>
                     <dt class="text-zinc-500">{{ __('Review Date') }}</dt>
-                    <dd class="font-medium">{{ $this->carePlan->review_date?->format('M d, Y') ?? __('Not set') }}</dd>
+                    <dd class="font-medium">
+                        @if($this->carePlan->review_date)
+                            <span @class(['text-amber-600 dark:text-amber-400' => $this->carePlan->review_date->lte(now()->addDays(7))])>
+                                {{ $this->carePlan->review_date->format('M d, Y') }}
+                            </span>
+                            @if($this->carePlan->review_date->lte(now()))
+                                <flux:badge size="sm" color="red" class="ml-1">{{ __('Overdue') }}</flux:badge>
+                            @elseif($this->carePlan->review_date->lte(now()->addDays(7)))
+                                <flux:badge size="sm" color="amber" class="ml-1">{{ __('Due soon') }}</flux:badge>
+                            @endif
+                        @else
+                            {{ __('Not set') }}
+                        @endif
+                    </dd>
                 </div>
             </dl>
         </flux:card>

@@ -75,9 +75,40 @@ class extends Component {
             <flux:button variant="ghost" :href="route('care-plans.show', $carePlanId)" wire:navigate icon="arrow-left" />
             <div>
                 <flux:heading size="xl">{{ __('Edit Care Plan') }}</flux:heading>
-                <flux:subheading>{{ $this->carePlan->resident?->full_name }}</flux:subheading>
+                <flux:subheading>{{ $title }}</flux:subheading>
             </div>
         </div>
+
+        {{-- Resident Card --}}
+        @if($this->carePlan->resident)
+            <flux:card class="p-4">
+                <div class="flex items-center gap-3">
+                    @if($this->carePlan->resident->photo_path)
+                        <img src="{{ Storage::url($this->carePlan->resident->photo_path) }}" alt="" class="size-12 rounded-full object-cover ring-2 ring-zinc-200 dark:ring-zinc-700" />
+                    @else
+                        <flux:avatar name="{{ $this->carePlan->resident->full_name }}" />
+                    @endif
+                    <div>
+                        <flux:text class="font-medium">{{ $this->carePlan->resident->full_name }}</flux:text>
+                        <flux:text class="text-xs text-zinc-500">
+                            {{ $this->carePlan->resident->age }} {{ __('years old') }}
+                            @if($this->carePlan->resident->room_number)
+                                &middot; {{ __('Room') }} {{ $this->carePlan->resident->room_number }}
+                            @endif
+                        </flux:text>
+                    </div>
+                    <flux:badge size="sm" :color="match($this->carePlan->resident->status) {
+                        'active' => 'green',
+                        'discharged' => 'amber',
+                        'deceased' => 'red',
+                        'on_leave' => 'blue',
+                        default => 'zinc',
+                    }" class="ml-auto">
+                        {{ str_replace('_', ' ', ucfirst($this->carePlan->resident->status)) }}
+                    </flux:badge>
+                </div>
+            </flux:card>
+        @endif
 
         <form wire:submit="save" class="space-y-6">
             {{-- Care Plan Details --}}
@@ -87,10 +118,6 @@ class extends Component {
                 <div class="grid gap-4 sm:grid-cols-2">
                     <div class="sm:col-span-2">
                         <flux:input wire:model="title" :label="__('Title')" required />
-                    </div>
-
-                    <div class="sm:col-span-2">
-                        <flux:input :value="$this->carePlan->resident?->full_name" :label="__('Resident')" disabled />
                     </div>
 
                     <flux:select wire:model="type" :label="__('Type')" required>

@@ -36,6 +36,7 @@ class extends Component {
     public string $generatedReport = '';
     public bool $isGenerating = false;
     public string $errorMessage = '';
+    public bool $showAdvanced = false;
 
     public function mount(): void
     {
@@ -96,13 +97,29 @@ class extends Component {
     }
 
     #[Computed]
-    public function reportTypes(): array
+    public function reportTypeConfig(): array
     {
         return [
-            'individual_session' => 'Individual Session Note',
-            'progress_summary' => 'Progress Summary (Multi-Session)',
-            'therapist_caseload' => 'Therapist Caseload Report',
-            'resident_history' => 'Resident Therapy History',
+            'individual_session' => [
+                'label' => 'Session Note',
+                'description' => 'Single session documentation',
+                'icon' => 'document-text',
+            ],
+            'progress_summary' => [
+                'label' => 'Progress Summary',
+                'description' => 'Multi-session overview',
+                'icon' => 'chart-bar',
+            ],
+            'therapist_caseload' => [
+                'label' => 'Caseload Report',
+                'description' => 'Therapist workload analysis',
+                'icon' => 'clipboard-document-list',
+            ],
+            'resident_history' => [
+                'label' => 'Therapy History',
+                'description' => 'Complete resident record',
+                'icon' => 'clock',
+            ],
         ];
     }
 
@@ -150,29 +167,38 @@ class extends Component {
         };
     }
 
+    #[Computed]
+    public function canGenerate(): bool
+    {
+        if (!$this->canUseAi) return false;
+
+        return match ($this->reportType) {
+            'individual_session' => !empty($this->sessionId),
+            'progress_summary', 'resident_history' => !empty($this->residentId),
+            'therapist_caseload' => !empty($this->therapistId),
+            default => false,
+        };
+    }
+
+    public function setReportType(string $type): void
+    {
+        $this->reportType = $type;
+        $this->generatedReport = '';
+        $this->errorMessage = '';
+    }
+
     public function generateReport(): void
     {
         $this->errorMessage = '';
         $this->generatedReport = '';
 
         if (!$this->canUseAi) {
-            $this->errorMessage = 'AI therapy reporting is not enabled or configured. Please contact your administrator.';
+            $this->errorMessage = 'AI therapy reporting is not enabled or configured.';
             return;
         }
 
-        // Validate inputs based on report type
-        if ($this->reportType === 'individual_session' && !$this->sessionId) {
-            $this->errorMessage = 'Please select a session for individual session reports.';
-            return;
-        }
-
-        if (in_array($this->reportType, ['progress_summary', 'resident_history']) && !$this->residentId) {
-            $this->errorMessage = 'Please select a resident for this report type.';
-            return;
-        }
-
-        if ($this->reportType === 'therapist_caseload' && !$this->therapistId) {
-            $this->errorMessage = 'Please select a therapist for caseload reports.';
+        if (!$this->canGenerate) {
+            $this->errorMessage = 'Please select the required options for this report type.';
             return;
         }
 
@@ -190,7 +216,7 @@ class extends Component {
                 $this->errorMessage = $response->error ?? 'Failed to generate report. Please try again.';
             }
         } catch (\Exception $e) {
-            $this->errorMessage = 'An error occurred while generating the report. Please try again.';
+            $this->errorMessage = 'An error occurred while generating the report.';
         } finally {
             $this->isGenerating = false;
         }
@@ -418,42 +444,57 @@ class extends Component {
 }; ?>
 
 <flux:main>
-    <div class="max-w-5xl mx-auto space-y-6">
-        <div>
-            <flux:heading size="xl">{{ __('Generate Therapy Report') }}</flux:heading>
-            <flux:subheading>{{ __('Use AI to generate professional therapy session reports') }}</flux:subheading>
+    <div class="max-w-6xl mx-auto">
+        {{-- Header --}}
+        <div class="mb-8">
+            <flux:heading size="xl">{{ __('Therapy Reports') }}</flux:heading>
+            <flux:subheading>{{ __('Generate AI-powered reports or export formatted documents') }}</flux:subheading>
         </div>
 
         @if(!$this->canUseAi)
-            <flux:card class="bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800">
-                <div class="flex items-start gap-4">
-                    <flux:icon name="exclamation-triangle" class="h-6 w-6 text-amber-600 dark:text-amber-400 flex-shrink-0" />
-                    <div>
-                        <flux:heading size="sm">{{ __('AI Not Available') }}</flux:heading>
-                        <p class="text-sm text-zinc-600 dark:text-zinc-400 mt-1">
-                            {{ __('AI therapy reporting is not enabled or configured. Please contact your administrator to enable this feature in System Settings > AI Configuration.') }}
-                        </p>
-                    </div>
-                </div>
-            </flux:card>
+            <flux:callout variant="warning" icon="exclamation-triangle" class="mb-6">
+                <x-slot:heading>{{ __('AI Not Available') }}</x-slot:heading>
+                {{ __('AI therapy reporting is not enabled. You can still export documents using the export options.') }}
+            </flux:callout>
         @endif
 
-        <div class="grid gap-6 lg:grid-cols-3">
-            {{-- Report Options --}}
-            <div class="lg:col-span-1 space-y-6">
+        <div class="grid gap-8 lg:grid-cols-5">
+            {{-- Left Panel: Configuration --}}
+            <div class="lg:col-span-2 space-y-6">
+                {{-- Report Type Selection --}}
+                <flux:card class="p-0 overflow-hidden">
+                    <div class="p-4 border-b border-zinc-200 dark:border-zinc-700">
+                        <flux:heading size="sm">{{ __('Report Type') }}</flux:heading>
+                    </div>
+                    <div class="divide-y divide-zinc-100 dark:divide-zinc-800">
+                        @foreach($this->reportTypeConfig as $type => $config)
+                            <button
+                                wire:click="setReportType('{{ $type }}')"
+                                class="w-full flex items-center gap-4 p-4 text-left transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-800/50 {{ $reportType === $type ? 'bg-zinc-50 dark:bg-zinc-800/50' : '' }}"
+                            >
+                                <div class="flex-shrink-0 p-2 rounded-lg {{ $reportType === $type ? 'bg-accent text-white' : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400' }}">
+                                    <flux:icon name="{{ $config['icon'] }}" class="size-5" />
+                                </div>
+                                <div class="flex-1 min-w-0">
+                                    <div class="font-medium {{ $reportType === $type ? 'text-accent' : '' }}">{{ $config['label'] }}</div>
+                                    <div class="text-sm text-zinc-500 dark:text-zinc-400">{{ $config['description'] }}</div>
+                                </div>
+                                @if($reportType === $type)
+                                    <flux:icon name="check-circle" class="size-5 text-accent flex-shrink-0" />
+                                @endif
+                            </button>
+                        @endforeach
+                    </div>
+                </flux:card>
+
+                {{-- Report Options --}}
                 <flux:card>
-                    <flux:heading size="sm" class="mb-4">{{ __('Report Type') }}</flux:heading>
+                    <flux:heading size="sm" class="mb-4">{{ __('Options') }}</flux:heading>
 
                     <div class="space-y-4">
-                        <flux:select wire:model.live="reportType" label="Report Type">
-                            @foreach($this->reportTypes as $value => $label)
-                                <flux:select.option value="{{ $value }}">{{ $label }}</flux:select.option>
-                            @endforeach
-                        </flux:select>
-
                         @if($reportType === 'individual_session')
-                            <flux:select wire:model="sessionId" label="Select Session">
-                                <flux:select.option value="">{{ __('Choose a session...') }}</flux:select.option>
+                            <flux:select wire:model.live="sessionId" label="Session">
+                                <flux:select.option value="">{{ __('Select a session...') }}</flux:select.option>
                                 @foreach($this->sessions as $id => $label)
                                     <flux:select.option value="{{ $id }}">{{ $label }}</flux:select.option>
                                 @endforeach
@@ -461,8 +502,8 @@ class extends Component {
                         @endif
 
                         @if(in_array($reportType, ['progress_summary', 'resident_history']))
-                            <flux:select wire:model="residentId" label="Select Resident">
-                                <flux:select.option value="">{{ __('Choose a resident...') }}</flux:select.option>
+                            <flux:select wire:model.live="residentId" label="Resident">
+                                <flux:select.option value="">{{ __('Select a resident...') }}</flux:select.option>
                                 @foreach($this->residents as $id => $name)
                                     <flux:select.option value="{{ $id }}">{{ $name }}</flux:select.option>
                                 @endforeach
@@ -470,8 +511,8 @@ class extends Component {
                         @endif
 
                         @if($reportType === 'therapist_caseload')
-                            <flux:select wire:model="therapistId" label="Select Therapist">
-                                <flux:select.option value="">{{ __('Choose a therapist...') }}</flux:select.option>
+                            <flux:select wire:model.live="therapistId" label="Therapist">
+                                <flux:select.option value="">{{ __('Select a therapist...') }}</flux:select.option>
                                 @foreach($this->therapists as $id => $name)
                                     <flux:select.option value="{{ $id }}">{{ $name }}</flux:select.option>
                                 @endforeach
@@ -479,110 +520,140 @@ class extends Component {
                         @endif
 
                         @if(in_array($reportType, ['progress_summary', 'therapist_caseload']))
-                            <flux:input
-                                wire:model="dateFrom"
-                                type="date"
-                                label="From Date"
-                            />
-
-                            <flux:input
-                                wire:model="dateTo"
-                                type="date"
-                                label="To Date"
-                            />
+                            <div class="grid grid-cols-2 gap-3">
+                                <flux:input wire:model.live="dateFrom" type="date" label="From" />
+                                <flux:input wire:model.live="dateTo" type="date" label="To" />
+                            </div>
                         @endif
                     </div>
                 </flux:card>
 
-                <flux:card>
-                    <flux:heading size="sm" class="mb-4">{{ __('Custom Instructions') }}</flux:heading>
+                {{-- Advanced Options (Collapsed) --}}
+                <flux:card class="overflow-hidden">
+                    <button
+                        wire:click="$toggle('showAdvanced')"
+                        class="w-full flex items-center justify-between p-0 text-left"
+                    >
+                        <span class="text-sm font-medium text-zinc-700 dark:text-zinc-300">{{ __('Advanced Options') }}</span>
+                        <flux:icon name="{{ $showAdvanced ? 'chevron-up' : 'chevron-down' }}" class="size-4 text-zinc-400" />
+                    </button>
 
-                    <flux:textarea
-                        wire:model="customInstructions"
-                        placeholder="Add any specific instructions for the AI (e.g., focus on specific aspects, include particular details, formatting preferences)..."
-                        rows="4"
-                    />
+                    @if($showAdvanced)
+                        <div class="mt-4 pt-4 border-t border-zinc-200 dark:border-zinc-700">
+                            <flux:textarea
+                                wire:model="customInstructions"
+                                label="Custom Instructions"
+                                placeholder="Add specific instructions for the AI (e.g., focus areas, formatting preferences, tone)..."
+                                rows="3"
+                            />
+                            <p class="mt-2 text-xs text-zinc-500">{{ __('These instructions will be included when generating AI reports.') }}</p>
+                        </div>
+                    @endif
                 </flux:card>
 
-                {{-- Export Document --}}
-                <flux:card>
-                    <flux:heading size="sm" class="mb-2">{{ __('Export Document') }}</flux:heading>
-                    <p class="text-xs text-zinc-500 dark:text-zinc-400 mb-4">
-                        {{ __('Download as formatted PDF or Word document. Uses AI to enhance content when available.') }}
-                    </p>
+                {{-- Action Buttons --}}
+                <div class="flex gap-3">
+                    <flux:button
+                        variant="primary"
+                        wire:click="generateReport"
+                        wire:loading.attr="disabled"
+                        :disabled="!$this->canGenerate"
+                        class="flex-1"
+                        icon="sparkles"
+                    >
+                        <span wire:loading.remove wire:target="generateReport">{{ __('Generate with AI') }}</span>
+                        <span wire:loading wire:target="generateReport">{{ __('Generating...') }}</span>
+                    </flux:button>
 
                     @if(!empty($this->exportUrls))
-                        <div class="space-y-2">
-                            <a href="{{ $this->exportUrls['pdf'] }}" target="_blank" class="block w-full">
-                                <flux:button variant="outline" class="w-full" icon="document-arrow-down">
-                                    {{ __('Download PDF') }}
-                                </flux:button>
-                            </a>
-                            <a href="{{ $this->exportUrls['word'] }}" target="_blank" class="block w-full">
-                                <flux:button variant="outline" class="w-full" icon="document-text">
-                                    {{ __('Download Word (.docx)') }}
-                                </flux:button>
-                            </a>
-                        </div>
-                    @else
-                        <p class="text-xs text-zinc-400 dark:text-zinc-500 italic text-center py-2">
-                            {{ __('Select the required options above to enable export.') }}
-                        </p>
+                        <flux:dropdown>
+                            <flux:button variant="outline" icon="arrow-down-tray" icon-trailing="chevron-down">
+                                {{ __('Export') }}
+                            </flux:button>
+                            <flux:menu>
+                                <a href="{{ $this->exportUrls['pdf'] }}" target="_blank">
+                                    <flux:menu.item icon="document-arrow-down">{{ __('Download PDF') }}</flux:menu.item>
+                                </a>
+                                <a href="{{ $this->exportUrls['word'] }}" target="_blank">
+                                    <flux:menu.item icon="document-text">{{ __('Download Word') }}</flux:menu.item>
+                                </a>
+                            </flux:menu>
+                        </flux:dropdown>
                     @endif
-                </flux:card>
-
-                <flux:button
-                    variant="primary"
-                    wire:click="generateReport"
-                    wire:loading.attr="disabled"
-                    :disabled="!$this->canUseAi"
-                    class="w-full"
-                    icon="sparkles"
-                >
-                    <span wire:loading.remove wire:target="generateReport">{{ __('Generate Report') }}</span>
-                    <span wire:loading wire:target="generateReport">{{ __('Generating...') }}</span>
-                </flux:button>
+                </div>
             </div>
 
-            {{-- Generated Report --}}
-            <div class="lg:col-span-2">
-                <flux:card class="min-h-[500px]">
-                    <div class="flex items-center justify-between mb-4">
-                        <flux:heading size="sm">{{ __('Generated Report') }}</flux:heading>
-                        @if($generatedReport)
-                            <flux:button variant="ghost" size="sm" wire:click="clearReport" icon="x-mark">
-                                {{ __('Clear') }}
-                            </flux:button>
-                        @endif
+            {{-- Right Panel: Report Preview --}}
+            <div class="lg:col-span-3">
+                <flux:card class="h-full min-h-[600px] flex flex-col">
+                    {{-- Header with actions --}}
+                    <div class="flex items-center justify-between pb-4 border-b border-zinc-200 dark:border-zinc-700">
+                        <div>
+                            <flux:heading size="sm">{{ __('Report Preview') }}</flux:heading>
+                            @if($generatedReport)
+                                <p class="text-xs text-zinc-500 mt-1">{{ __('AI-generated content') }}</p>
+                            @endif
+                        </div>
+                        <div class="flex items-center gap-2">
+                            @if($generatedReport)
+                                <flux:button variant="ghost" size="sm" wire:click="clearReport" icon="x-mark">
+                                    {{ __('Clear') }}
+                                </flux:button>
+                            @endif
+                        </div>
                     </div>
 
-                    @if($errorMessage)
-                        <div class="rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 p-4 mb-4">
-                            <div class="flex items-start gap-3">
-                                <flux:icon name="exclamation-circle" class="h-5 w-5 text-red-600 dark:text-red-400 flex-shrink-0" />
-                                <p class="text-sm text-red-700 dark:text-red-300">{{ $errorMessage }}</p>
-                            </div>
-                        </div>
-                    @endif
+                    {{-- Content Area --}}
+                    <div class="flex-1 pt-4 overflow-auto">
+                        @if($errorMessage)
+                            <flux:callout variant="danger" icon="exclamation-circle" class="mb-4">
+                                {{ $errorMessage }}
+                            </flux:callout>
+                        @endif
 
-                    @if($isGenerating)
-                        <div class="flex flex-col items-center justify-center py-16">
-                            <div class="animate-spin rounded-full h-12 w-12 border-b-2 theme-accent-spinner"></div>
-                            <p class="mt-4 text-sm text-zinc-500 dark:text-zinc-400">{{ __('Generating your report...') }}</p>
-                        </div>
-                    @elseif($generatedReport)
-                        <div class="prose prose-sm dark:prose-invert max-w-none">
-                            {!! Str::markdown($generatedReport) !!}
-                        </div>
-                    @else
-                        <div class="flex flex-col items-center justify-center py-16 text-center">
-                            <flux:icon name="document-text" class="h-16 w-16 text-zinc-300 dark:text-zinc-600" />
-                            <h3 class="mt-4 text-lg font-medium">{{ __('No Report Generated') }}</h3>
-                            <p class="mt-1 text-sm text-zinc-500 dark:text-zinc-400 max-w-sm">
-                                {{ __('Select a report type and the required options, then click "Generate Report" to create your AI-powered therapy report.') }}
-                            </p>
-                        </div>
-                    @endif
+                        @if($isGenerating)
+                            <div class="flex flex-col items-center justify-center h-full py-16">
+                                <div class="relative">
+                                    <div class="animate-spin rounded-full h-12 w-12 border-2 border-zinc-200 dark:border-zinc-700"></div>
+                                    <div class="absolute inset-0 animate-spin rounded-full h-12 w-12 border-t-2 border-accent"></div>
+                                </div>
+                                <p class="mt-4 text-sm text-zinc-500">{{ __('Generating your report...') }}</p>
+                                <p class="text-xs text-zinc-400 mt-1">{{ __('This may take a few moments') }}</p>
+                            </div>
+                        @elseif($generatedReport)
+                            <article class="prose prose-sm dark:prose-invert max-w-none prose-headings:font-semibold prose-h1:text-xl prose-h2:text-lg prose-h3:text-base">
+                                {!! Str::markdown($generatedReport) !!}
+                            </article>
+                        @else
+                            <div class="flex flex-col items-center justify-center h-full py-16 text-center">
+                                <div class="p-4 rounded-full bg-zinc-100 dark:bg-zinc-800 mb-4">
+                                    <flux:icon name="document-text" class="size-8 text-zinc-400" />
+                                </div>
+                                <h3 class="font-medium text-zinc-700 dark:text-zinc-300">{{ __('No Report Yet') }}</h3>
+                                <p class="mt-2 text-sm text-zinc-500 max-w-xs">
+                                    {{ __('Select your options and click "Generate with AI" to create a report, or use "Export" to download a formatted document.') }}
+                                </p>
+
+                                @if(!$this->canGenerate && !empty($this->exportUrls))
+                                    <div class="mt-6">
+                                        <flux:dropdown>
+                                            <flux:button variant="outline" size="sm" icon="arrow-down-tray">
+                                                {{ __('Quick Export') }}
+                                            </flux:button>
+                                            <flux:menu>
+                                                <a href="{{ $this->exportUrls['pdf'] }}" target="_blank">
+                                                    <flux:menu.item icon="document-arrow-down">{{ __('PDF') }}</flux:menu.item>
+                                                </a>
+                                                <a href="{{ $this->exportUrls['word'] }}" target="_blank">
+                                                    <flux:menu.item icon="document-text">{{ __('Word') }}</flux:menu.item>
+                                                </a>
+                                            </flux:menu>
+                                        </flux:dropdown>
+                                    </div>
+                                @endif
+                            </div>
+                        @endif
+                    </div>
                 </flux:card>
             </div>
         </div>

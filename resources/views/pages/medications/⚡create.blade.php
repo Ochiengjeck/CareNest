@@ -3,6 +3,7 @@
 use App\Concerns\MedicationValidationRules;
 use App\Models\Medication;
 use App\Models\Resident;
+use App\Services\AI\AiManager;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
@@ -27,6 +28,8 @@ class extends Component {
     public string $instructions = '';
     public string $notes = '';
 
+    public bool $isGenerating = false;
+
     public function mount(): void
     {
         $this->prescribed_date = now()->format('Y-m-d');
@@ -41,6 +44,90 @@ class extends Component {
             ->get()
             ->mapWithKeys(fn ($r) => [$r->id => $r->full_name . ' (Room ' . $r->room_number . ')'])
             ->toArray();
+    }
+
+    #[Computed]
+    public function canUseAi(): bool
+    {
+        try {
+            $aiManager = app(AiManager::class);
+            return $aiManager->isUseCaseEnabled('care_assistant')
+                && $aiManager->isConfigured($aiManager->getUseCaseProvider('care_assistant'));
+        } catch (\Exception) {
+            return false;
+        }
+    }
+
+    public function aiSuggest(): void
+    {
+        if (!$this->canUseAi || !$this->resident_id) {
+            return;
+        }
+
+        $this->isGenerating = true;
+
+        try {
+            $aiManager = app(AiManager::class);
+            $resident = Resident::find($this->resident_id);
+
+            if (!$resident) {
+                return;
+            }
+
+            $existingMeds = Medication::where('resident_id', $resident->id)
+                ->active()
+                ->pluck('name')
+                ->implode(', ');
+
+            $prompt = "You are a clinical pharmacist assistant. Suggest a medication prescription for a care home resident.\n\n";
+            $prompt .= "Resident Details:\n";
+            $prompt .= "- Name: {$resident->full_name}\n";
+            $prompt .= "- Age: {$resident->age} years old\n";
+            $prompt .= "- Gender: {$resident->gender}\n";
+
+            if ($resident->medical_conditions) {
+                $prompt .= "- Medical Conditions: {$resident->medical_conditions}\n";
+            }
+            if ($resident->allergies) {
+                $prompt .= "- Allergies: {$resident->allergies}\n";
+            }
+
+            if ($existingMeds) {
+                $prompt .= "\nCurrently prescribed medications (avoid duplicates, consider interactions): {$existingMeds}\n";
+            }
+
+            $prompt .= "\nBased on this resident's conditions and existing medications, suggest a new medication that would benefit them.\n";
+            $prompt .= "Respond ONLY with a JSON object (no markdown, no code fences, just raw JSON) with these keys:\n";
+            $prompt .= '- "name": the medication name (generic name)' . "\n";
+            $prompt .= '- "dosage": specific dosage (e.g., "500mg", "10ml")' . "\n";
+            $prompt .= '- "frequency": how often to take it (e.g., "Twice daily", "Every 8 hours")' . "\n";
+            $prompt .= '- "route": one of oral, topical, injection, inhalation, sublingual, rectal, other' . "\n";
+            $prompt .= '- "instructions": administration instructions and special considerations' . "\n";
+
+            $response = $aiManager->executeForUseCase('care_assistant', $prompt);
+
+            if ($response->success) {
+                $content = trim($response->content);
+                $content = preg_replace('/^```(?:json)?\s*/m', '', $content);
+                $content = preg_replace('/\s*```$/m', '', $content);
+
+                $data = json_decode($content, true);
+
+                if (is_array($data)) {
+                    $this->name = $data['name'] ?? '';
+                    $this->dosage = $data['dosage'] ?? '';
+                    $this->frequency = $data['frequency'] ?? '';
+                    if (isset($data['route']) && in_array($data['route'], ['oral', 'topical', 'injection', 'inhalation', 'sublingual', 'rectal', 'other'])) {
+                        $this->route = $data['route'];
+                    }
+                    $this->instructions = is_array($data['instructions'] ?? '') ? implode("\n", $data['instructions']) : ($data['instructions'] ?? '');
+                }
+            }
+        } catch (\Exception) {
+            // Silent fail - user can fill manually
+        } finally {
+            $this->isGenerating = false;
+        }
     }
 
     public function save(): void
@@ -69,11 +156,26 @@ class extends Component {
         <form wire:submit="save" class="space-y-6">
             {{-- Medication Details --}}
             <flux:card class="space-y-4">
-                <flux:heading size="sm">{{ __('Medication Details') }}</flux:heading>
+                <div class="flex items-center justify-between">
+                    <flux:heading size="sm">{{ __('Medication Details') }}</flux:heading>
+                    @if($this->canUseAi && $resident_id)
+                        <flux:button
+                            variant="primary"
+                            size="sm"
+                            wire:click="aiSuggest"
+                            wire:loading.attr="disabled"
+                            wire:target="aiSuggest"
+                            icon="sparkles"
+                        >
+                            <span wire:loading.remove wire:target="aiSuggest">{{ __('AI Suggest') }}</span>
+                            <span wire:loading wire:target="aiSuggest">{{ __('Generating...') }}</span>
+                        </flux:button>
+                    @endif
+                </div>
                 <flux:separator />
                 <div class="grid gap-4 sm:grid-cols-2">
                     <div class="sm:col-span-2">
-                        <flux:select wire:model="resident_id" :label="__('Resident')" required>
+                        <flux:select wire:model.live="resident_id" :label="__('Resident')" required>
                             <flux:select.option value="">{{ __('Select a resident...') }}</flux:select.option>
                             @foreach($this->residents as $id => $residentName)
                                 <flux:select.option value="{{ $id }}">{{ $residentName }}</flux:select.option>

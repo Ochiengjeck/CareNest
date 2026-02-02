@@ -32,7 +32,7 @@ class VitalSeeder extends Seeder
                 $systolic = rand(100, 160);
                 $diastolic = rand(55, 95);
                 $heartRate = rand(55, 105);
-                $temperature = round(rand(360, 385) / 10, 1);
+                $temperature = round(rand(968, 1010) / 10, 1);
                 $respiratoryRate = rand(12, 22);
                 $oxygenSaturation = rand(92, 100);
                 $painLevel = rand(0, 6);

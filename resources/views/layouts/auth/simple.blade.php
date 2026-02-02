@@ -7,10 +7,17 @@
         <div class="bg-background flex min-h-svh flex-col items-center justify-center gap-6 p-6 md:p-10">
             <div class="flex w-full max-w-sm flex-col gap-2">
                 <a href="{{ route('home') }}" class="flex flex-col items-center gap-2 font-medium" wire:navigate>
-                    <span class="flex h-9 w-9 mb-1 items-center justify-center rounded-md">
-                        <x-app-logo-icon class="size-9 fill-current text-black dark:text-white" />
+                    <span class="flex mb-1 items-center justify-center rounded-md">
+                        @if(!empty($systemLogo))
+                            <img src="{{ Storage::url($systemLogo) }}" alt="{{ $systemName ?? config('app.name') }}" class="h-10 w-auto object-contain" />
+                        @else
+                            <x-app-logo-icon class="size-9 fill-current text-black dark:text-white" />
+                        @endif
                     </span>
-                    <span class="sr-only">{{ config('app.name', 'Laravel') }}</span>
+                    <span class="text-lg font-semibold text-zinc-900 dark:text-white">{{ $systemName ?? config('app.name', 'Laravel') }}</span>
+                    @if(!empty($systemTagline))
+                        <span class="text-sm text-zinc-500 dark:text-zinc-400 -mt-1">{{ $systemTagline }}</span>
+                    @endif
                 </a>
                 <div class="flex flex-col gap-6">
                     {{ $slot }}

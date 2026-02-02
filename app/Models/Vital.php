@@ -79,7 +79,7 @@ class Vital extends Model
         if ($this->heart_rate && ($this->heart_rate > 100 || $this->heart_rate < 60)) {
             return true;
         }
-        if ($this->temperature && ($this->temperature > 37.8 || $this->temperature < 36.0)) {
+        if ($this->temperature && ($this->temperature > 100.0 || $this->temperature < 96.8)) {
             return true;
         }
         if ($this->respiratory_rate && ($this->respiratory_rate > 20 || $this->respiratory_rate < 12)) {
