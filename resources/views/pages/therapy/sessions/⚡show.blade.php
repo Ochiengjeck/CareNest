@@ -260,16 +260,29 @@ class extends Component {
         </flux:card>
 
         {{-- Actions --}}
-        <div class="flex justify-end gap-3">
+        <div class="flex flex-wrap justify-end gap-3">
             @can('manage-therapy')
             <flux:button variant="ghost" :href="route('therapy.sessions.edit', $this->session)" wire:navigate icon="pencil">
                 {{ __('Edit Session') }}
             </flux:button>
             @endcan
             @can('view-reports')
-            <flux:button variant="primary" :href="route('therapy.reports.generate', ['session' => $this->session->id])" wire:navigate icon="document-chart-bar">
-                {{ __('Generate Report') }}
-            </flux:button>
+                {{-- Export buttons for completed + documented sessions --}}
+                @if($this->session->status === 'completed' && $this->session->progress_notes)
+                    <a href="{{ route('therapy.reports.export.individual.pdf', $this->session) }}" target="_blank">
+                        <flux:button variant="outline" icon="document-arrow-down">
+                            {{ __('Export PDF') }}
+                        </flux:button>
+                    </a>
+                    <a href="{{ route('therapy.reports.export.individual.word', $this->session) }}" target="_blank">
+                        <flux:button variant="outline" icon="document-text">
+                            {{ __('Export Word') }}
+                        </flux:button>
+                    </a>
+                @endif
+                <flux:button variant="primary" :href="route('therapy.reports.generate', ['session' => $this->session->id])" wire:navigate icon="document-chart-bar">
+                    {{ __('AI Report') }}
+                </flux:button>
             @endcan
         </div>
     </div>

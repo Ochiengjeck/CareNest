@@ -106,6 +106,50 @@ class extends Component {
         ];
     }
 
+    #[Computed]
+    public function exportUrls(): array
+    {
+        return match ($this->reportType) {
+            'individual_session' => $this->sessionId ? [
+                'pdf' => route('therapy.reports.export.individual.pdf', $this->sessionId),
+                'word' => route('therapy.reports.export.individual.word', $this->sessionId),
+            ] : [],
+            'progress_summary' => $this->residentId ? [
+                'pdf' => route('therapy.reports.export.progress-summary.pdf', [
+                    'resident_id' => $this->residentId,
+                    'date_from' => $this->dateFrom,
+                    'date_to' => $this->dateTo,
+                ]),
+                'word' => route('therapy.reports.export.progress-summary.word', [
+                    'resident_id' => $this->residentId,
+                    'date_from' => $this->dateFrom,
+                    'date_to' => $this->dateTo,
+                ]),
+            ] : [],
+            'therapist_caseload' => $this->therapistId ? [
+                'pdf' => route('therapy.reports.export.therapist-caseload.pdf', [
+                    'therapist_id' => $this->therapistId,
+                    'date_from' => $this->dateFrom,
+                    'date_to' => $this->dateTo,
+                ]),
+                'word' => route('therapy.reports.export.therapist-caseload.word', [
+                    'therapist_id' => $this->therapistId,
+                    'date_from' => $this->dateFrom,
+                    'date_to' => $this->dateTo,
+                ]),
+            ] : [],
+            'resident_history' => $this->residentId ? [
+                'pdf' => route('therapy.reports.export.resident-history.pdf', [
+                    'resident_id' => $this->residentId,
+                ]),
+                'word' => route('therapy.reports.export.resident-history.word', [
+                    'resident_id' => $this->residentId,
+                ]),
+            ] : [],
+            default => [],
+        };
+    }
+
     public function generateReport(): void
     {
         $this->errorMessage = '';
@@ -458,6 +502,33 @@ class extends Component {
                         placeholder="Add any specific instructions for the AI (e.g., focus on specific aspects, include particular details, formatting preferences)..."
                         rows="4"
                     />
+                </flux:card>
+
+                {{-- Export Document --}}
+                <flux:card>
+                    <flux:heading size="sm" class="mb-2">{{ __('Export Document') }}</flux:heading>
+                    <p class="text-xs text-zinc-500 dark:text-zinc-400 mb-4">
+                        {{ __('Download as formatted PDF or Word document. Uses AI to enhance content when available.') }}
+                    </p>
+
+                    @if(!empty($this->exportUrls))
+                        <div class="space-y-2">
+                            <a href="{{ $this->exportUrls['pdf'] }}" target="_blank" class="block w-full">
+                                <flux:button variant="outline" class="w-full" icon="document-arrow-down">
+                                    {{ __('Download PDF') }}
+                                </flux:button>
+                            </a>
+                            <a href="{{ $this->exportUrls['word'] }}" target="_blank" class="block w-full">
+                                <flux:button variant="outline" class="w-full" icon="document-text">
+                                    {{ __('Download Word (.docx)') }}
+                                </flux:button>
+                            </a>
+                        </div>
+                    @else
+                        <p class="text-xs text-zinc-400 dark:text-zinc-500 italic text-center py-2">
+                            {{ __('Select the required options above to enable export.') }}
+                        </p>
+                    @endif
                 </flux:card>
 
                 <flux:button
