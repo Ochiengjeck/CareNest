@@ -109,7 +109,7 @@ class extends Component {
 
                         <div class="grid grid-cols-3 gap-4 text-center text-sm">
                             <div>
-                                <div class="text-2xl font-bold text-blue-600 dark:text-blue-400">{{ $activeAssignments }}</div>
+                                <div class="text-2xl font-bold theme-accent-text">{{ $activeAssignments }}</div>
                                 <div class="text-xs text-zinc-500 dark:text-zinc-400">{{ __('Residents') }}</div>
                             </div>
                             <div>

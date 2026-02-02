@@ -97,7 +97,7 @@ class extends Component {
         <div class="grid gap-4 sm:grid-cols-4">
             <flux:card>
                 <div class="text-center">
-                    <div class="text-3xl font-bold text-blue-600 dark:text-blue-400">{{ $this->stats['active_residents'] }}</div>
+                    <div class="text-3xl font-bold theme-accent-text">{{ $this->stats['active_residents'] }}</div>
                     <div class="text-sm text-zinc-500 dark:text-zinc-400">{{ __('Active Residents') }}</div>
                 </div>
             </flux:card>

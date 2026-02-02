@@ -67,7 +67,7 @@ class extends Component {
 
         {{-- Quick Actions --}}
         @if($this->session->status === 'scheduled' && ($this->session->therapist_id === auth()->id() || auth()->user()->can('manage-therapy')))
-            <flux:card class="bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800">
+            <flux:card class="theme-accent-bg theme-accent-border">
                 <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                     <div>
                         <flux:heading size="sm">{{ __('Session Actions') }}</flux:heading>

@@ -496,7 +496,7 @@ class extends Component {
 
                     @if($isGenerating)
                         <div class="flex flex-col items-center justify-center py-16">
-                            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 dark:border-blue-400"></div>
+                            <div class="animate-spin rounded-full h-12 w-12 border-b-2 theme-accent-spinner"></div>
                             <p class="mt-4 text-sm text-zinc-500 dark:text-zinc-400">{{ __('Generating your report...') }}</p>
                         </div>
                     @elseif($generatedReport)

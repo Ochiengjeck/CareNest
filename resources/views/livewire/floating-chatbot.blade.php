@@ -1,3 +1,4 @@
+<div>
 @php
     $chatbotEnabled = system_setting('chatbot_enabled', false);
 @endphp
@@ -102,7 +103,7 @@
     <button
         @click="toggle()"
         type="button"
-        class="flex items-center justify-center w-14 h-14 rounded-full bg-blue-600 hover:bg-blue-700 text-white shadow-lg transition-all duration-200 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+        class="chatbot-accent chatbot-accent-ring flex items-center justify-center w-14 h-14 rounded-full text-white shadow-lg transition-all duration-200 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-offset-2"
     >
         <svg x-show="!open" xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
             <path stroke-linecap="round" stroke-linejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
@@ -125,7 +126,7 @@
         class="absolute bottom-20 right-0 w-80 sm:w-96 bg-white dark:bg-zinc-800 rounded-2xl shadow-2xl border border-zinc-200 dark:border-zinc-700 overflow-hidden"
     >
         {{-- Header --}}
-        <div class="flex items-center justify-between px-4 py-3 bg-blue-600 text-white">
+        <div class="flex items-center justify-between px-4 py-3 chatbot-accent text-white">
             <div class="flex items-center gap-2">
                 <div class="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
                 <span class="font-medium text-sm">{{ __('CareNest Assistant') }}</span>
@@ -134,7 +135,7 @@
                 <button
                     type="button"
                     @click="clearChat()"
-                    class="p-1.5 hover:bg-blue-700 rounded-lg transition-colors"
+                    class="p-1.5 rounded-lg transition-colors hover:bg-black/10"
                     title="{{ __('Clear chat') }}"
                 >
                     <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -144,7 +145,7 @@
                 <button
                     type="button"
                     @click="close()"
-                    class="p-1.5 hover:bg-blue-700 rounded-lg transition-colors"
+                    class="p-1.5 rounded-lg transition-colors hover:bg-black/10"
                 >
                     <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -172,7 +173,7 @@
                     {{-- User Message --}}
                     <template x-if="msg.role === 'user'">
                         <div class="flex justify-end">
-                            <div class="max-w-[85%] bg-blue-600 text-white rounded-2xl rounded-br-md px-4 py-2 shadow-sm">
+                            <div class="max-w-[85%] chatbot-accent text-white rounded-2xl rounded-br-md px-4 py-2 shadow-sm">
                                 <p class="text-sm whitespace-pre-wrap break-words" x-text="msg.content"></p>
                             </div>
                         </div>
@@ -220,13 +221,13 @@
                     @keydown.enter.prevent="sendMessage()"
                     :disabled="isTyping"
                     placeholder="{{ __('Type a message...') }}"
-                    class="flex-1 px-4 py-2 text-sm border border-zinc-300 dark:border-zinc-600 rounded-full bg-zinc-50 dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50"
+                    class="chatbot-accent-ring flex-1 px-4 py-2 text-sm border border-zinc-300 dark:border-zinc-600 rounded-full bg-zinc-50 dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 placeholder-zinc-500 focus:outline-none focus:ring-2 focus:border-transparent disabled:opacity-50"
                 />
                 <button
                     type="button"
                     @click="sendMessage()"
                     :disabled="isTyping"
-                    class="flex items-center justify-center w-10 h-10 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                    class="chatbot-accent chatbot-accent-ring flex items-center justify-center w-10 h-10 text-white rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2"
                 >
                     <svg x-show="!isTyping" xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
@@ -242,3 +243,4 @@
 </div>
 @endif
 @endauth
+</div>

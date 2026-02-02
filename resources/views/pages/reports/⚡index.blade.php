@@ -19,10 +19,10 @@ class extends Component {
 
         <div class="grid gap-6 md:grid-cols-2">
             {{-- Resident Overview --}}
-            <flux:card class="group transition-colors hover:border-blue-300 dark:hover:border-blue-700">
+            <flux:card class="group transition-colors theme-accent-border-hover">
                 <div class="flex items-start gap-4">
-                    <div class="rounded-lg bg-blue-50 p-3 dark:bg-blue-900/20">
-                        <flux:icon name="user-group" class="size-6 text-blue-600 dark:text-blue-400" />
+                    <div class="rounded-lg theme-accent-bg p-3">
+                        <flux:icon name="user-group" class="size-6 theme-accent-text" />
                     </div>
                     <div class="flex-1">
                         <flux:heading size="sm">{{ __('Resident Overview') }}</flux:heading>

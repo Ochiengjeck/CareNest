@@ -445,7 +445,7 @@ new class extends Component {
                                     <flux:text class="text-xs text-zinc-500">Missed</flux:text>
                                 </div>
                                 <div>
-                                    <div class="text-2xl font-semibold text-blue-600 dark:text-blue-400">{{ $medOverview['withheld'] }}</div>
+                                    <div class="text-2xl font-semibold theme-accent-text">{{ $medOverview['withheld'] }}</div>
                                     <flux:text class="text-xs text-zinc-500">Withheld</flux:text>
                                 </div>
                             </div>

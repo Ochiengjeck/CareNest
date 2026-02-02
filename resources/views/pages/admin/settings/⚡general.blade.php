@@ -2,6 +2,7 @@
 
 use App\Concerns\GeneralSettingsValidationRules;
 use App\Services\SettingsService;
+use App\Services\ThemeService;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Component;
@@ -20,6 +21,9 @@ class extends Component {
     public string $date_format = '';
     public string $time_format = '';
     public string $language = '';
+
+    // Theme
+    public string $active_theme = 'ocean-blue';
 
     // Branding
     public $logo = null;
@@ -57,7 +61,8 @@ class extends Component {
         $this->time_format = $settings->get('time_format', 'h:i A') ?? 'h:i A';
         $this->language = $settings->get('language', 'en') ?? 'en';
 
-        $this->primary_color = $settings->get('primary_color', '#6366f1') ?? '#6366f1';
+        $this->active_theme = $settings->get('active_theme', 'ocean-blue') ?? 'ocean-blue';
+        $this->primary_color = $settings->get('primary_color', '#2872A1') ?? '#2872A1';
         $this->sidebar_name = $settings->get('sidebar_name', 'CareNest') ?? 'CareNest';
         $this->current_logo = $settings->get('logo_path');
         $this->current_favicon = $settings->get('favicon_path');
@@ -90,6 +95,27 @@ class extends Component {
         $this->dispatch('general-saved');
     }
 
+    public function saveTheme(): void
+    {
+        $this->validate($this->themeRules());
+
+        $settings = app(SettingsService::class);
+        $themeService = app(ThemeService::class);
+        $themes = $themeService->getThemes();
+
+        $settings->set('active_theme', $this->active_theme, 'branding');
+
+        // Sync primary_color for backwards compatibility
+        if (isset($themes[$this->active_theme])) {
+            $settings->set('primary_color', $themes[$this->active_theme]['primary'], 'branding');
+            $this->primary_color = $themes[$this->active_theme]['primary'];
+        }
+
+        $settings->clearCache('active_theme');
+
+        $this->dispatch('theme-saved');
+    }
+
     public function saveBranding(): void
     {
         $this->validate($this->brandingRules());
@@ -111,7 +137,6 @@ class extends Component {
         }
 
         $settings->setMany([
-            'primary_color' => $this->primary_color,
             'sidebar_name' => $this->sidebar_name,
         ], 'branding');
 
@@ -184,6 +209,52 @@ class extends Component {
         :subheading="__('Configure system identity, branding, contact information, and social links')">
 
         <div class="space-y-8 max-w-3xl">
+            {{-- Theme --}}
+            <flux:card>
+                <flux:heading size="sm" class="mb-4">{{ __('Theme') }}</flux:heading>
+
+                <form wire:submit="saveTheme" class="space-y-4">
+                    <p class="text-sm text-zinc-500 dark:text-zinc-400">
+                        {{ __('Choose a color theme for your system. This affects buttons, links, and accent colors across the interface.') }}
+                    </p>
+
+                    <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                        @foreach(app(\App\Services\ThemeService::class)->getThemes() as $slug => $theme)
+                            <label
+                                class="relative cursor-pointer rounded-xl border-2 p-3 transition-all {{ $active_theme === $slug ? 'border-zinc-900 dark:border-white ring-2 ring-zinc-900 dark:ring-white' : 'border-zinc-200 dark:border-zinc-700 hover:border-zinc-400 dark:hover:border-zinc-500' }}"
+                            >
+                                <input
+                                    type="radio"
+                                    wire:model="active_theme"
+                                    value="{{ $slug }}"
+                                    class="sr-only"
+                                />
+                                <div class="flex items-center gap-2 mb-2">
+                                    <div class="w-6 h-6 rounded-full border border-zinc-300 dark:border-zinc-600" style="background-color: {{ $theme['primary'] }}"></div>
+                                    <div class="w-6 h-6 rounded-full border border-zinc-300 dark:border-zinc-600" style="background-color: {{ $theme['secondary'] }}"></div>
+                                </div>
+                                <span class="text-sm font-medium text-zinc-700 dark:text-zinc-300">{{ $theme['name'] }}</span>
+
+                                @if($active_theme === $slug)
+                                    <div class="absolute top-2 right-2">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-zinc-900 dark:text-white" viewBox="0 0 20 20" fill="currentColor">
+                                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                                        </svg>
+                                    </div>
+                                @endif
+                            </label>
+                        @endforeach
+                    </div>
+
+                    @error('active_theme') <flux:error>{{ $message }}</flux:error> @enderror
+
+                    <div class="flex items-center gap-4">
+                        <flux:button variant="primary" type="submit">{{ __('Save') }}</flux:button>
+                        <x-action-message on="theme-saved">{{ __('Saved.') }}</x-action-message>
+                    </div>
+                </form>
+            </flux:card>
+
             {{-- System Identity --}}
             <flux:card>
                 <flux:heading size="sm" class="mb-4">{{ __('System Identity') }}</flux:heading>
@@ -261,17 +332,7 @@ class extends Component {
                         @error('favicon') <flux:error>{{ $message }}</flux:error> @enderror
                     </div>
 
-                    <div class="grid gap-4 sm:grid-cols-2">
-                        <flux:input wire:model="sidebar_name" :label="__('Sidebar Display Name')" :placeholder="__('Shown in the sidebar header')" />
-                        <div>
-                            <flux:label>{{ __('Primary Color') }}</flux:label>
-                            <div class="mt-2 flex items-center gap-3">
-                                <input type="color" wire:model="primary_color" class="h-9 w-14 cursor-pointer rounded border border-zinc-300 dark:border-zinc-600" />
-                                <flux:input wire:model="primary_color" class="flex-1" placeholder="#6366f1" />
-                            </div>
-                            @error('primary_color') <flux:error>{{ $message }}</flux:error> @enderror
-                        </div>
-                    </div>
+                    <flux:input wire:model="sidebar_name" :label="__('Sidebar Display Name')" :placeholder="__('Shown in the sidebar header')" />
 
                     <div class="flex items-center gap-4">
                         <flux:button variant="primary" type="submit">{{ __('Save') }}</flux:button>

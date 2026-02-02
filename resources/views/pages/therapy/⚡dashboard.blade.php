@@ -78,8 +78,8 @@ class extends Component {
         <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <flux:card>
                 <div class="flex items-center gap-4">
-                    <div class="flex h-12 w-12 items-center justify-center rounded-lg bg-blue-100 dark:bg-blue-900/30">
-                        <flux:icon name="calendar" class="h-6 w-6 text-blue-600 dark:text-blue-400" />
+                    <div class="flex h-12 w-12 items-center justify-center rounded-lg theme-accent-bg-muted">
+                        <flux:icon name="calendar" class="h-6 w-6 theme-accent-text" />
                     </div>
                     <div>
                         <div class="text-2xl font-bold">{{ $this->todaySessions->count() }}</div>

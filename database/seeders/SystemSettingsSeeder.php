@@ -21,8 +21,9 @@ class SystemSettingsSeeder extends Seeder
             // Branding
             ['key' => 'logo_path', 'group' => 'branding', 'value' => null, 'type' => 'image'],
             ['key' => 'favicon_path', 'group' => 'branding', 'value' => null, 'type' => 'image'],
-            ['key' => 'primary_color', 'group' => 'branding', 'value' => '#6366f1', 'type' => 'string'],
+            ['key' => 'primary_color', 'group' => 'branding', 'value' => '#2872A1', 'type' => 'string'],
             ['key' => 'sidebar_name', 'group' => 'branding', 'value' => 'CareNest', 'type' => 'string'],
+            ['key' => 'active_theme', 'group' => 'branding', 'value' => 'ocean-blue', 'type' => 'string'],
 
             // Contact
             ['key' => 'address_line_1', 'group' => 'contact', 'value' => '', 'type' => 'string'],

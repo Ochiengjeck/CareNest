@@ -11,6 +11,7 @@ use App\Models\User;
 use App\Observers\AuditableObserver;
 use App\Services\AI\AiManager;
 use App\Services\SettingsService;
+use App\Services\ThemeService;
 use Carbon\CarbonImmutable;
 use Illuminate\Auth\Events\Failed;
 use Illuminate\Auth\Events\Login;
@@ -31,6 +32,7 @@ class AppServiceProvider extends ServiceProvider
     {
         $this->app->singleton(SettingsService::class);
         $this->app->singleton(AiManager::class);
+        $this->app->singleton(ThemeService::class);
     }
 
     /**
@@ -69,11 +71,20 @@ class AppServiceProvider extends ServiceProvider
             $settings = app(SettingsService::class);
             $systemName = $settings->get('system_name', config('app.name'));
             $systemLogo = $settings->get('logo_path');
+            $systemTagline = $settings->get('system_tagline', '');
+            $faviconPath = $settings->get('favicon_path');
 
             config(['app.name' => $systemName]);
 
             View::share('systemName', $systemName);
             View::share('systemLogo', $systemLogo);
+            View::share('systemTagline', $systemTagline);
+            View::share('faviconPath', $faviconPath);
+
+            $themeService = app(ThemeService::class);
+            $activeThemeSlug = $themeService->getActiveThemeSlug();
+            View::share('themeCss', $themeService->renderThemeCss($activeThemeSlug));
+            View::share('activeThemeSlug', $activeThemeSlug);
         } catch (\Exception) {
             // Table may not exist yet during migrations
         }

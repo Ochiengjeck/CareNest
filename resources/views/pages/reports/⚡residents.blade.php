@@ -176,7 +176,7 @@ class extends Component {
                             <flux:text>{{ \Carbon\Carbon::parse($month . '-01')->format('F Y') }}</flux:text>
                             <div class="flex items-center gap-3">
                                 <div class="h-2 w-32 overflow-hidden rounded-full bg-zinc-100 dark:bg-zinc-700">
-                                    <div class="h-2 rounded-full bg-blue-500" style="width: {{ min($count * 10, 100) }}%"></div>
+                                    <div class="h-2 rounded-full theme-accent-bar" style="width: {{ min($count * 10, 100) }}%"></div>
                                 </div>
                                 <flux:text class="w-8 text-right font-medium">{{ $count }}</flux:text>
                             </div>

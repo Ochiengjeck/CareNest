@@ -356,7 +356,7 @@ class extends Component {
 
             <flux:card class="text-center">
                 <flux:heading size="sm" class="text-zinc-500 dark:text-zinc-400">{{ __('Updates') }}</flux:heading>
-                <p class="mt-2 text-3xl font-bold text-blue-600">{{ number_format($this->actionBreakdown['updated'] ?? 0) }}</p>
+                <p class="mt-2 text-3xl font-bold theme-accent-text">{{ number_format($this->actionBreakdown['updated'] ?? 0) }}</p>
             </flux:card>
 
             <flux:card class="text-center">
@@ -375,7 +375,7 @@ class extends Component {
                         @php
                             $color = match($action) {
                                 'created' => 'bg-green-500',
-                                'updated' => 'bg-blue-500',
+                                'updated' => 'theme-accent-bar',
                                 'deleted' => 'bg-red-500',
                                 'restored' => 'bg-amber-500',
                                 'login' => 'bg-green-400',

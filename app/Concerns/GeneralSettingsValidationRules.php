@@ -16,12 +16,18 @@ trait GeneralSettingsValidationRules
         ];
     }
 
+    protected function themeRules(): array
+    {
+        return [
+            'active_theme' => ['required', 'string', 'in:ocean-blue,soft-sage,deep-burgundy,vibrant-orange,blush-peach,pale-cream'],
+        ];
+    }
+
     protected function brandingRules(): array
     {
         return [
             'logo' => ['nullable', 'image', 'mimes:svg,png,jpg,jpeg,webp', 'max:1024'],
             'favicon' => ['nullable', 'image', 'mimes:png,ico,svg', 'max:512'],
-            'primary_color' => ['nullable', 'string', 'regex:/^#[0-9a-fA-F]{6}$/'],
             'sidebar_name' => ['nullable', 'string', 'max:50'],
         ];
     }
