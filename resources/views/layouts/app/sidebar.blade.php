@@ -11,15 +11,28 @@
             </flux:sidebar.header>
 
             <flux:sidebar.nav>
-                <flux:sidebar.group :heading="__('Platform')" class="grid">
+                {{-- Platform Navigation (always visible) --}}
+                <flux:sidebar.group
+                    :heading="__('Platform')"
+                    icon="squares-2x2"
+                    expandable
+                    :expanded="request()->routeIs('dashboard')"
+                    class="grid"
+                >
                     <flux:sidebar.item icon="home" :href="route('dashboard')" :current="request()->routeIs('dashboard')" wire:navigate>
                         {{ __('Dashboard') }}
                     </flux:sidebar.item>
                 </flux:sidebar.group>
 
-                {{-- Admin Navigation --}}
+                {{-- Administration Navigation --}}
                 @can('manage-users')
-                <flux:sidebar.group :heading="__('Administration')" class="grid">
+                <flux:sidebar.group
+                    :heading="__('Administration')"
+                    icon="cog-6-tooth"
+                    expandable
+                    :expanded="request()->routeIs('admin.users.*') || request()->routeIs('admin.roles.*') || request()->routeIs('admin.settings.*') || request()->routeIs('admin.logs.*') || request()->routeIs('admin.agencies.*')"
+                    class="grid"
+                >
                     <flux:sidebar.item icon="users" :href="route('admin.users.index')" :current="request()->routeIs('admin.users.*') || request()->routeIs('admin.roles.*')" wire:navigate>
                         {{ __('Users & Roles') }}
                     </flux:sidebar.item>
@@ -34,17 +47,60 @@
                     </flux:sidebar.item>
                     @endcan
                     @can('manage-settings')
-                    <flux:sidebar.item icon="globe-alt" :href="route('admin.website.settings')" :current="request()->routeIs('admin.website.*')" wire:navigate>
-                        {{ __('Website Content') }}
+                    <flux:sidebar.item icon="building-office" :href="route('admin.agencies.index')" :current="request()->routeIs('admin.agencies.*')" wire:navigate>
+                        {{ __('Agencies') }}
                     </flux:sidebar.item>
                     @endcan
                 </flux:sidebar.group>
                 @endcan
 
+                {{-- Website Content Navigation --}}
+                @can('manage-settings')
+                <flux:sidebar.group
+                    :heading="__('Website Content')"
+                    icon="globe-alt"
+                    expandable
+                    :expanded="request()->routeIs('admin.website.*')"
+                    class="grid"
+                >
+                    <flux:sidebar.item icon="document-text" :href="route('admin.website.settings')" :current="request()->routeIs('admin.website.settings')" wire:navigate>
+                        {{ __('Content Settings') }}
+                    </flux:sidebar.item>
+                    <flux:sidebar.item icon="chat-bubble-bottom-center-text" :href="route('admin.website.testimonials')" :current="request()->routeIs('admin.website.testimonials')" wire:navigate>
+                        {{ __('Testimonials') }}
+                    </flux:sidebar.item>
+                    <flux:sidebar.item icon="users" :href="route('admin.website.team')" :current="request()->routeIs('admin.website.team')" wire:navigate>
+                        {{ __('Team Members') }}
+                    </flux:sidebar.item>
+                    <flux:sidebar.item icon="question-mark-circle" :href="route('admin.website.faq')" :current="request()->routeIs('admin.website.faq')" wire:navigate>
+                        {{ __('FAQ Items') }}
+                    </flux:sidebar.item>
+                    <flux:sidebar.item icon="photo" :href="route('admin.website.gallery')" :current="request()->routeIs('admin.website.gallery')" wire:navigate>
+                        {{ __('Gallery') }}
+                    </flux:sidebar.item>
+                    <flux:sidebar.item icon="rectangle-stack" :href="route('admin.website.services')" :current="request()->routeIs('admin.website.services')" wire:navigate>
+                        {{ __('Services') }}
+                    </flux:sidebar.item>
+                    <flux:sidebar.item icon="inbox" :href="route('admin.website.contact-submissions')" :current="request()->routeIs('admin.website.contact-submissions')" wire:navigate>
+                        {{ __('Contact Submissions') }}
+                        @php $newContactCount = \App\Models\ContactSubmission::new()->count(); @endphp
+                        @if($newContactCount > 0)
+                            <flux:badge color="amber" size="sm">{{ $newContactCount }}</flux:badge>
+                        @endif
+                    </flux:sidebar.item>
+                </flux:sidebar.group>
+                @endcan
+
                 {{-- Residents Navigation --}}
                 @can('view-residents')
-                <flux:sidebar.group :heading="__('Residents')" class="grid">
-                    <flux:sidebar.item icon="user-group" :href="route('residents.index')" :current="request()->routeIs('residents.*')" wire:navigate>
+                <flux:sidebar.group
+                    :heading="__('Residents')"
+                    icon="user-group"
+                    expandable
+                    :expanded="request()->routeIs('residents.*') || request()->routeIs('care-plans.*')"
+                    class="grid"
+                >
+                    <flux:sidebar.item icon="users" :href="route('residents.index')" :current="request()->routeIs('residents.*')" wire:navigate>
                         {{ __('All Residents') }}
                     </flux:sidebar.item>
                     @can('view-care-plans')
@@ -57,7 +113,13 @@
 
                 {{-- Clinical Navigation --}}
                 @can('manage-medications')
-                <flux:sidebar.group :heading="__('Clinical')" class="grid">
+                <flux:sidebar.group
+                    :heading="__('Clinical')"
+                    icon="beaker"
+                    expandable
+                    :expanded="request()->routeIs('medications.*') || request()->routeIs('vitals.*')"
+                    class="grid"
+                >
                     <flux:sidebar.item icon="beaker" :href="route('medications.index')" :current="request()->routeIs('medications.*')" wire:navigate>
                         {{ __('Medications') }}
                     </flux:sidebar.item>
@@ -69,7 +131,13 @@
 
                 {{-- Staff Navigation --}}
                 @can('view-staff')
-                <flux:sidebar.group :heading="__('Staff')" class="grid">
+                <flux:sidebar.group
+                    :heading="__('Staff')"
+                    icon="identification"
+                    expandable
+                    :expanded="request()->routeIs('staff.*') || request()->routeIs('shifts.*')"
+                    class="grid"
+                >
                     <flux:sidebar.item icon="identification" :href="route('staff.index')" :current="request()->routeIs('staff.*')" wire:navigate>
                         {{ __('Staff Directory') }}
                     </flux:sidebar.item>
@@ -83,9 +151,15 @@
 
                 {{-- Therapy Navigation --}}
                 @canany(['view-therapy', 'conduct-therapy', 'manage-therapy'])
-                <flux:sidebar.group :heading="__('Therapy')" class="grid">
+                <flux:sidebar.group
+                    :heading="__('Therapy')"
+                    icon="heart"
+                    expandable
+                    :expanded="request()->routeIs('therapy.*')"
+                    class="grid"
+                >
                     @if(auth()->user()->hasRole('therapist'))
-                    <flux:sidebar.item icon="heart" :href="route('therapy.dashboard')" :current="request()->routeIs('therapy.dashboard')" wire:navigate>
+                    <flux:sidebar.item icon="squares-2x2" :href="route('therapy.dashboard')" :current="request()->routeIs('therapy.dashboard')" wire:navigate>
                         {{ __('My Dashboard') }}
                     </flux:sidebar.item>
                     <flux:sidebar.item icon="users" :href="route('therapy.my-residents')" :current="request()->routeIs('therapy.my-residents')" wire:navigate>
@@ -115,7 +189,13 @@
 
                 {{-- Reports Navigation --}}
                 @can('view-reports')
-                <flux:sidebar.group :heading="__('Reports')" class="grid">
+                <flux:sidebar.group
+                    :heading="__('Reports')"
+                    icon="chart-bar"
+                    expandable
+                    :expanded="request()->routeIs('reports.*') || request()->routeIs('incidents.*')"
+                    class="grid"
+                >
                     <flux:sidebar.item icon="chart-bar" :href="route('reports.index')" :current="request()->routeIs('reports.*')" wire:navigate>
                         {{ __('Reports') }}
                     </flux:sidebar.item>
@@ -129,16 +209,6 @@
             </flux:sidebar.nav>
 
             <flux:spacer />
-
-            <flux:sidebar.nav>
-                <flux:sidebar.item icon="folder-git-2" href="https://github.com/laravel/livewire-starter-kit" target="_blank">
-                    {{ __('Repository') }}
-                </flux:sidebar.item>
-
-                <flux:sidebar.item icon="book-open-text" href="https://laravel.com/docs/starter-kits#livewire" target="_blank">
-                    {{ __('Documentation') }}
-                </flux:sidebar.item>
-            </flux:sidebar.nav>
 
             <x-desktop-user-menu class="hidden lg:block" :name="auth()->user()->name" />
         </flux:sidebar>
