@@ -167,7 +167,7 @@ class extends Component {
 
             @can('manage-residents')
                 <flux:button variant="primary" :href="route('residents.create')" wire:navigate icon="plus">
-                    {{ __('Add Resident') }}
+                    {{ __('Admit') }}
                 </flux:button>
             @endcan
         </div>

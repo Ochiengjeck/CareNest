@@ -82,6 +82,27 @@ class SystemSettingsSeeder extends Seeder
                 'max_tokens' => 2048,
                 'system_prompt' => 'You are an incident summarization assistant for a care home. Summarize incident reports by extracting: what happened, who was involved, when it occurred, severity level, immediate actions taken, and recommended follow-up actions. Be factual and concise.',
             ])],
+
+            // Public Website
+            ['key' => 'public_stats', 'group' => 'public_website', 'type' => 'json', 'value' => json_encode([
+                'years' => '20',
+                'residents' => '150',
+                'staff' => '50',
+                'satisfaction' => '98',
+            ])],
+            ['key' => 'public_visiting_hours', 'group' => 'public_website', 'type' => 'json', 'value' => json_encode([
+                'weekday' => '10:00 AM - 8:00 PM',
+                'saturday' => '10:00 AM - 8:00 PM',
+                'sunday' => '10:00 AM - 8:00 PM',
+            ])],
+            ['key' => 'public_office_hours', 'group' => 'public_website', 'type' => 'json', 'value' => json_encode([
+                'weekday' => '8:00 AM - 6:00 PM',
+                'saturday' => '9:00 AM - 4:00 PM',
+                'sunday' => '10:00 AM - 2:00 PM',
+            ])],
+            ['key' => 'public_about_story', 'group' => 'public_website', 'type' => 'string', 'value' => 'Our care home was founded with a simple yet profound mission: to create a place where seniors can live with dignity, comfort, and joy. What started as a small family-run care home has grown into a trusted name in elderly care.'],
+            ['key' => 'public_about_mission', 'group' => 'public_website', 'type' => 'string', 'value' => 'To provide exceptional, person-centered care that enhances quality of life, promotes independence, and treats every resident with the dignity and respect they deserve.'],
+            ['key' => 'public_about_vision', 'group' => 'public_website', 'type' => 'string', 'value' => 'To be the most trusted and preferred care home in our community, known for excellence in care, innovation in services, and genuine compassion for every resident we serve.'],
         ];
 
         foreach ($settings as $setting) {

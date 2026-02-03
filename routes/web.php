@@ -2,9 +2,8 @@
 
 use Illuminate\Support\Facades\Route;
 
-Route::get('/', function () {
-    return view('welcome');
-})->name('home');
+// Public website routes (home, about, services, etc.)
+require __DIR__.'/public.php';
 
 Route::view('dashboard', 'dashboard')
     ->middleware(['auth', 'verified'])

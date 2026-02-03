@@ -9,7 +9,7 @@ use Livewire\WithFileUploads;
 
 new
 #[Layout('layouts.app.sidebar')]
-#[Title('Add Resident')]
+#[Title('Admit Resident')]
 class extends Component {
     use ResidentValidationRules, WithFileUploads;
 
@@ -105,7 +105,7 @@ class extends Component {
 
         $resident = Resident::create($data);
 
-        session()->flash('status', 'Resident added successfully.');
+        session()->flash('status', 'Resident admitted successfully.');
         $this->redirect(route('residents.show', $resident), navigate: true);
     }
 }; ?>
@@ -115,8 +115,8 @@ class extends Component {
         <div class="flex items-center gap-4">
             <flux:button variant="ghost" :href="route('residents.index')" wire:navigate icon="arrow-left" />
             <div>
-                <flux:heading size="xl">{{ __('Add Resident') }}</flux:heading>
-                <flux:subheading>{{ __('Register a new resident in the care home') }}</flux:subheading>
+                <flux:heading size="xl">{{ __('Admit Resident') }}</flux:heading>
+                <flux:subheading>{{ __('Admit a new resident to the care home') }}</flux:subheading>
             </div>
         </div>
 
@@ -305,7 +305,7 @@ class extends Component {
                         </flux:button>
                     @else
                         <flux:button variant="primary" type="submit" icon="check">
-                            {{ __('Add Resident') }}
+                            {{ __('Admit Resident') }}
                         </flux:button>
                     @endif
                 </div>

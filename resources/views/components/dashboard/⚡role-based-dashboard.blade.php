@@ -111,6 +111,44 @@ new class extends Component {
         return AuditLog::with('user')->latest()->take(5)->get();
     }
 
+    #[Computed]
+    public function recentAdmissions(): \Illuminate\Database\Eloquent\Collection
+    {
+        return Resident::where('admission_date', '>=', now()->subDays(30))
+            ->orderByDesc('admission_date')
+            ->take(5)
+            ->get();
+    }
+
+    #[Computed]
+    public function admissionStats(): array
+    {
+        $thisMonth = Resident::whereMonth('admission_date', now()->month)
+            ->whereYear('admission_date', now()->year)
+            ->count();
+
+        $lastMonth = Resident::whereMonth('admission_date', now()->subMonth()->month)
+            ->whereYear('admission_date', now()->subMonth()->year)
+            ->count();
+
+        $thisWeek = Resident::where('admission_date', '>=', now()->startOfWeek())
+            ->where('admission_date', '<=', now()->endOfWeek())
+            ->count();
+
+        $pendingDischarge = Resident::active()
+            ->whereNotNull('discharge_date')
+            ->where('discharge_date', '>=', today())
+            ->count();
+
+        return [
+            'this_month' => $thisMonth,
+            'last_month' => $lastMonth,
+            'this_week' => $thisWeek,
+            'pending_discharge' => $pendingDischarge,
+            'trend' => $thisMonth - $lastMonth,
+        ];
+    }
+
     // ── Manager ──
 
     #[Computed]
@@ -403,6 +441,62 @@ new class extends Component {
                         @endif
                     </x-dashboard.widget-card>
                 </div>
+
+                {{-- Admissions Overview --}}
+                <div class="grid gap-4 md:grid-cols-2">
+                    <x-dashboard.widget-card title="Admissions Overview" icon="user-plus">
+                        @php $admStats = $this->admissionStats; @endphp
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="text-center p-3 bg-zinc-50 dark:bg-zinc-800/50 rounded-lg">
+                                <div class="text-2xl font-semibold theme-accent-text">{{ $admStats['this_month'] }}</div>
+                                <flux:text class="text-xs text-zinc-500">This Month</flux:text>
+                            </div>
+                            <div class="text-center p-3 bg-zinc-50 dark:bg-zinc-800/50 rounded-lg">
+                                <div class="text-2xl font-semibold text-zinc-600 dark:text-zinc-400">{{ $admStats['last_month'] }}</div>
+                                <flux:text class="text-xs text-zinc-500">Last Month</flux:text>
+                            </div>
+                            <div class="text-center p-3 bg-zinc-50 dark:bg-zinc-800/50 rounded-lg">
+                                <div class="text-2xl font-semibold text-green-600 dark:text-green-400">{{ $admStats['this_week'] }}</div>
+                                <flux:text class="text-xs text-zinc-500">This Week</flux:text>
+                            </div>
+                            <div class="text-center p-3 bg-zinc-50 dark:bg-zinc-800/50 rounded-lg">
+                                <div class="text-2xl font-semibold text-amber-600 dark:text-amber-400">{{ $admStats['pending_discharge'] }}</div>
+                                <flux:text class="text-xs text-zinc-500">Pending Discharge</flux:text>
+                            </div>
+                        </div>
+                        @if($admStats['trend'] != 0)
+                            <div class="mt-3 pt-3 border-t border-zinc-100 dark:border-zinc-800 flex items-center gap-2">
+                                <flux:icon name="{{ $admStats['trend'] > 0 ? 'arrow-trending-up' : 'arrow-trending-down' }}" variant="mini" class="size-4 {{ $admStats['trend'] > 0 ? 'text-green-600' : 'text-red-600' }}" />
+                                <flux:text class="text-sm {{ $admStats['trend'] > 0 ? 'text-green-600' : 'text-red-600' }}">
+                                    {{ abs($admStats['trend']) }} {{ $admStats['trend'] > 0 ? 'more' : 'fewer' }} than last month
+                                </flux:text>
+                            </div>
+                        @endif
+                    </x-dashboard.widget-card>
+
+                    <x-dashboard.widget-card title="Recent Admissions" icon="users">
+                        @if($this->recentAdmissions->isEmpty())
+                            <flux:text class="text-sm text-zinc-500">No admissions in the last 30 days.</flux:text>
+                        @else
+                            <div class="divide-y divide-zinc-100 dark:divide-zinc-800">
+                                @foreach($this->recentAdmissions as $resident)
+                                    <a href="{{ route('residents.show', $resident) }}" wire:navigate class="flex items-center justify-between py-2.5 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 -mx-1 px-1 rounded transition-colors">
+                                        <div class="min-w-0 flex-1">
+                                            <flux:text class="text-sm font-medium truncate">{{ $resident->full_name }}</flux:text>
+                                            <flux:text class="text-xs text-zinc-500">Room {{ $resident->room_number ?? 'N/A' }} &middot; Admitted {{ $resident->admission_date->diffForHumans() }}</flux:text>
+                                        </div>
+                                        <flux:badge size="sm" color="green">New</flux:badge>
+                                    </a>
+                                @endforeach
+                            </div>
+                            <div class="mt-3 pt-3 border-t border-zinc-100 dark:border-zinc-800">
+                                <flux:button variant="ghost" size="sm" :href="route('residents.index')" icon="arrow-right" icon-trailing wire:navigate>
+                                    {{ __('View all residents') }}
+                                </flux:button>
+                            </div>
+                        @endif
+                    </x-dashboard.widget-card>
+                </div>
             </div>
         @endif
 
@@ -500,6 +594,34 @@ new class extends Component {
                         @endif
                     </x-dashboard.widget-card>
                 </div>
+
+                {{-- Recent Admissions --}}
+                <x-dashboard.widget-card title="Recent Admissions (Last 30 Days)" icon="user-plus">
+                    @if($this->recentAdmissions->isEmpty())
+                        <flux:text class="text-sm text-zinc-500">No new admissions in the last 30 days.</flux:text>
+                    @else
+                        <div class="divide-y divide-zinc-100 dark:divide-zinc-800">
+                            @foreach($this->recentAdmissions as $resident)
+                                <a href="{{ route('residents.show', $resident) }}" wire:navigate class="flex items-center justify-between py-2.5 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 -mx-1 px-1 rounded transition-colors">
+                                    <div class="min-w-0 flex-1">
+                                        <flux:text class="text-sm font-medium truncate">{{ $resident->full_name }}</flux:text>
+                                        <flux:text class="text-xs text-zinc-500">
+                                            Room {{ $resident->room_number ?? 'N/A' }} &middot;
+                                            Admitted {{ $resident->admission_date->format('M d, Y') }}
+                                            ({{ $resident->admission_date->diffForHumans() }})
+                                        </flux:text>
+                                    </div>
+                                    <flux:badge size="sm" color="green">New</flux:badge>
+                                </a>
+                            @endforeach
+                        </div>
+                        <div class="mt-3 pt-3 border-t border-zinc-100 dark:border-zinc-800">
+                            <flux:button variant="ghost" size="sm" :href="route('residents.index')" icon="arrow-right" icon-trailing wire:navigate>
+                                {{ __('View all residents') }}
+                            </flux:button>
+                        </div>
+                    @endif
+                </x-dashboard.widget-card>
             </div>
         @endif
 
@@ -539,7 +661,7 @@ new class extends Component {
                         @endif
                     </x-dashboard.widget-card>
                 </div>
-                <div class="grid gap-4 md:grid-cols-1">
+                <div class="grid gap-4 md:grid-cols-2">
                     {{-- Recent Medications --}}
                     <x-dashboard.widget-card title="Recent Medication Administrations" icon="beaker">
                         @if($this->nurseRecentMedications->isEmpty())
@@ -556,6 +678,35 @@ new class extends Component {
                                     </div>
                                 @endforeach
                             </div>
+                        @endif
+                    </x-dashboard.widget-card>
+
+                    {{-- New Admissions for Clinical Review --}}
+                    <x-dashboard.widget-card title="New Admissions" icon="user-plus">
+                        @if($this->recentAdmissions->isEmpty())
+                            <flux:text class="text-sm text-zinc-500">No new admissions requiring review.</flux:text>
+                        @else
+                            <div class="divide-y divide-zinc-100 dark:divide-zinc-800">
+                                @foreach($this->recentAdmissions->take(3) as $resident)
+                                    <a href="{{ route('residents.show', $resident) }}" wire:navigate class="flex items-center justify-between py-2.5 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 -mx-1 px-1 rounded transition-colors">
+                                        <div class="min-w-0 flex-1">
+                                            <flux:text class="text-sm font-medium truncate">{{ $resident->full_name }}</flux:text>
+                                            <flux:text class="text-xs text-zinc-500">
+                                                Room {{ $resident->room_number ?? 'N/A' }} &middot;
+                                                {{ $resident->admission_date->diffForHumans() }}
+                                            </flux:text>
+                                        </div>
+                                        <flux:badge size="sm" color="green">New</flux:badge>
+                                    </a>
+                                @endforeach
+                            </div>
+                            @if($this->recentAdmissions->count() > 3)
+                                <div class="mt-3 pt-3 border-t border-zinc-100 dark:border-zinc-800">
+                                    <flux:button variant="ghost" size="sm" :href="route('residents.index')" icon="arrow-right" icon-trailing wire:navigate>
+                                        {{ __('View all residents') }}
+                                    </flux:button>
+                                </div>
+                            @endif
                         @endif
                     </x-dashboard.widget-card>
                 </div>

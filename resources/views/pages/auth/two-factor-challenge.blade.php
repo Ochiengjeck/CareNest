@@ -23,26 +23,32 @@
                 },
             }"
         >
+            {{-- Icon --}}
+            <div class="mx-auto w-16 h-16 rounded-full bg-accent/10 flex items-center justify-center mb-6">
+                <flux:icon.device-phone-mobile class="size-8 text-accent" x-show="!showRecoveryInput" />
+                <flux:icon.key class="size-8 text-accent" x-show="showRecoveryInput" />
+            </div>
+
             <div x-show="!showRecoveryInput">
                 <x-auth-header
-                    :title="__('Authentication Code')"
-                    :description="__('Enter the authentication code provided by your authenticator application.')"
+                    :title="__('Two-factor authentication')"
+                    :description="__('Enter the 6-digit code from your authenticator app')"
                 />
             </div>
 
             <div x-show="showRecoveryInput">
                 <x-auth-header
-                    :title="__('Recovery Code')"
-                    :description="__('Please confirm access to your account by entering one of your emergency recovery codes.')"
+                    :title="__('Use recovery code')"
+                    :description="__('Enter one of your emergency recovery codes to access your account')"
                 />
             </div>
 
-            <form method="POST" action="{{ route('two-factor.login.store') }}">
+            <form method="POST" action="{{ route('two-factor.login.store') }}" class="mt-6">
                 @csrf
 
-                <div class="space-y-5 text-center">
+                <div class="space-y-5">
                     <div x-show="!showRecoveryInput">
-                        <div class="flex items-center justify-center my-5">
+                        <div class="flex items-center justify-center">
                             <flux:otp
                                 x-model="code"
                                 length="6"
@@ -52,24 +58,33 @@
                                 class="mx-auto"
                              />
                         </div>
+                        @error('code')
+                            <p class="mt-2 text-sm text-center text-red-600 dark:text-red-400">{{ $message }}</p>
+                        @enderror
                     </div>
 
                     <div x-show="showRecoveryInput">
-                        <div class="my-5">
-                            <flux:input
-                                type="text"
-                                name="recovery_code"
-                                x-ref="recovery_code"
-                                x-bind:required="showRecoveryInput"
-                                autocomplete="one-time-code"
-                                x-model="recovery_code"
-                            />
+                        <div>
+                            <flux:label for="recovery_code">{{ __('Recovery code') }}</flux:label>
+                            <div class="relative mt-1">
+                                <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-zinc-400 dark:text-zinc-500">
+                                    <flux:icon.key class="size-5" />
+                                </div>
+                                <flux:input
+                                    id="recovery_code"
+                                    type="text"
+                                    name="recovery_code"
+                                    x-ref="recovery_code"
+                                    x-bind:required="showRecoveryInput"
+                                    autocomplete="one-time-code"
+                                    x-model="recovery_code"
+                                    placeholder="XXXXX-XXXXX"
+                                    class="!pl-10"
+                                />
+                            </div>
                         </div>
-
                         @error('recovery_code')
-                            <flux:text color="red">
-                                {{ $message }}
-                            </flux:text>
+                            <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
                         @enderror
                     </div>
 
@@ -78,16 +93,19 @@
                         type="submit"
                         class="w-full"
                     >
-                        {{ __('Continue') }}
+                        {{ __('Verify') }}
                     </flux:button>
                 </div>
 
-                <div class="mt-5 space-x-0.5 text-sm leading-5 text-center">
-                    <span class="opacity-50">{{ __('or you can') }}</span>
-                    <div class="inline font-medium underline cursor-pointer opacity-80">
-                        <span x-show="!showRecoveryInput" @click="toggleInput()">{{ __('login using a recovery code') }}</span>
-                        <span x-show="showRecoveryInput" @click="toggleInput()">{{ __('login using an authentication code') }}</span>
-                    </div>
+                <div class="mt-5 text-center">
+                    <button
+                        type="button"
+                        @click="toggleInput()"
+                        class="text-sm text-accent hover:underline"
+                    >
+                        <span x-show="!showRecoveryInput">{{ __('Use a recovery code instead') }}</span>
+                        <span x-show="showRecoveryInput">{{ __('Use authenticator app instead') }}</span>
+                    </button>
                 </div>
             </form>
         </div>

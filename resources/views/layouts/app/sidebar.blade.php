@@ -33,6 +33,11 @@
                         {{ __('Audit Logs') }}
                     </flux:sidebar.item>
                     @endcan
+                    @can('manage-settings')
+                    <flux:sidebar.item icon="globe-alt" :href="route('admin.website.settings')" :current="request()->routeIs('admin.website.*')" wire:navigate>
+                        {{ __('Website Content') }}
+                    </flux:sidebar.item>
+                    @endcan
                 </flux:sidebar.group>
                 @endcan
 

@@ -37,6 +37,8 @@ class extends Component {
     public bool $isGenerating = false;
     public string $errorMessage = '';
     public bool $showAdvanced = false;
+    public string $previewTab = 'document';
+    public bool $documentGenerated = false;
 
     public function mount(): void
     {
@@ -168,10 +170,28 @@ class extends Component {
     }
 
     #[Computed]
+    public function previewPdfUrl(): ?string
+    {
+        if (empty($this->exportUrls)) {
+            return null;
+        }
+        return $this->exportUrls['pdf'] . (str_contains($this->exportUrls['pdf'], '?') ? '&' : '?') . 'preview=1';
+    }
+
+    #[Computed]
     public function canGenerate(): bool
     {
-        if (!$this->canUseAi) return false;
+        return match ($this->reportType) {
+            'individual_session' => !empty($this->sessionId),
+            'progress_summary', 'resident_history' => !empty($this->residentId),
+            'therapist_caseload' => !empty($this->therapistId),
+            default => false,
+        };
+    }
 
+    #[Computed]
+    public function hasValidSelection(): bool
+    {
         return match ($this->reportType) {
             'individual_session' => !empty($this->sessionId),
             'progress_summary', 'resident_history' => !empty($this->residentId),
@@ -185,6 +205,12 @@ class extends Component {
         $this->reportType = $type;
         $this->generatedReport = '';
         $this->errorMessage = '';
+        $this->documentGenerated = false;
+    }
+
+    public function setPreviewTab(string $tab): void
+    {
+        $this->previewTab = $tab;
     }
 
     public function generateReport(): void
@@ -192,17 +218,22 @@ class extends Component {
         $this->errorMessage = '';
         $this->generatedReport = '';
 
-        if (!$this->canUseAi) {
-            $this->errorMessage = 'AI therapy reporting is not enabled or configured.';
-            return;
-        }
-
         if (!$this->canGenerate) {
             $this->errorMessage = 'Please select the required options for this report type.';
             return;
         }
 
+        // Enable document preview (PDF will be generated on-demand when iframe loads)
+        $this->documentGenerated = true;
+
+        // If AI is not available, just enable the document preview without AI notes
+        if (!$this->canUseAi) {
+            $this->previewTab = 'document';
+            return;
+        }
+
         $this->isGenerating = true;
+        $this->previewTab = 'ai_notes';
 
         try {
             $aiManager = app(AiManager::class);
@@ -213,10 +244,12 @@ class extends Component {
             if ($response->success) {
                 $this->generatedReport = $response->content;
             } else {
-                $this->errorMessage = $response->error ?? 'Failed to generate report. Please try again.';
+                $this->errorMessage = $response->error ?? 'Failed to generate AI notes. Document preview is still available.';
+                $this->previewTab = 'document';
             }
         } catch (\Exception $e) {
-            $this->errorMessage = 'An error occurred while generating the report.';
+            $this->errorMessage = 'AI notes generation failed. Document preview is still available.';
+            $this->previewTab = 'document';
         } finally {
             $this->isGenerating = false;
         }
@@ -440,6 +473,7 @@ class extends Component {
     {
         $this->generatedReport = '';
         $this->errorMessage = '';
+        $this->documentGenerated = false;
     }
 }; ?>
 
@@ -448,13 +482,13 @@ class extends Component {
         {{-- Header --}}
         <div class="mb-8">
             <flux:heading size="xl">{{ __('Therapy Reports') }}</flux:heading>
-            <flux:subheading>{{ __('Generate AI-powered reports or export formatted documents') }}</flux:subheading>
+            <flux:subheading>{{ __('Generate reports and export formatted documents') }}</flux:subheading>
         </div>
 
         @if(!$this->canUseAi)
             <flux:callout variant="warning" icon="exclamation-triangle" class="mb-6">
                 <x-slot:heading>{{ __('AI Not Available') }}</x-slot:heading>
-                {{ __('AI therapy reporting is not enabled. You can still export documents using the export options.') }}
+                {{ __('AI is not enabled. Documents can still be exported with raw data.') }}
             </flux:callout>
         @endif
 
@@ -543,10 +577,10 @@ class extends Component {
                             <flux:textarea
                                 wire:model="customInstructions"
                                 label="Custom Instructions"
-                                placeholder="Add specific instructions for the AI (e.g., focus areas, formatting preferences, tone)..."
+                                placeholder="Add specific instructions for AI generation..."
                                 rows="3"
                             />
-                            <p class="mt-2 text-xs text-zinc-500">{{ __('These instructions will be included when generating AI reports.') }}</p>
+                            <p class="mt-2 text-xs text-zinc-500">{{ __('Used for AI Notes generation only.') }}</p>
                         </div>
                     @endif
                 </flux:card>
@@ -561,7 +595,7 @@ class extends Component {
                         class="flex-1"
                         icon="sparkles"
                     >
-                        <span wire:loading.remove wire:target="generateReport">{{ __('Generate with AI') }}</span>
+                        <span wire:loading.remove wire:target="generateReport">{{ __('Generate Report') }}</span>
                         <span wire:loading wire:target="generateReport">{{ __('Generating...') }}</span>
                     </flux:button>
 
@@ -583,72 +617,143 @@ class extends Component {
                 </div>
             </div>
 
-            {{-- Right Panel: Report Preview --}}
+            {{-- Right Panel: Preview --}}
             <div class="lg:col-span-3">
-                <flux:card class="h-full min-h-[600px] flex flex-col">
-                    {{-- Header with actions --}}
-                    <div class="flex items-center justify-between pb-4 border-b border-zinc-200 dark:border-zinc-700">
-                        <div>
-                            <flux:heading size="sm">{{ __('Report Preview') }}</flux:heading>
-                            @if($generatedReport)
-                                <p class="text-xs text-zinc-500 mt-1">{{ __('AI-generated content') }}</p>
-                            @endif
+                <flux:card class="h-full min-h-[650px] flex flex-col p-0 overflow-hidden">
+                    {{-- Tab Header --}}
+                    <div class="flex items-center justify-between px-4 py-3 border-b border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800/50">
+                        <div class="flex gap-1">
+                            <button
+                                wire:click="setPreviewTab('document')"
+                                class="px-4 py-2 text-sm font-medium rounded-lg transition-colors {{ $previewTab === 'document' ? 'bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white shadow-sm' : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white' }}"
+                            >
+                                <span class="flex items-center gap-2">
+                                    <flux:icon name="document" class="size-4" />
+                                    {{ __('Document Preview') }}
+                                    @if($documentGenerated)
+                                        <span class="size-2 rounded-full bg-green-500"></span>
+                                    @endif
+                                </span>
+                            </button>
+                            <button
+                                wire:click="setPreviewTab('ai_notes')"
+                                class="px-4 py-2 text-sm font-medium rounded-lg transition-colors {{ $previewTab === 'ai_notes' ? 'bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white shadow-sm' : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white' }}"
+                            >
+                                <span class="flex items-center gap-2">
+                                    <flux:icon name="sparkles" class="size-4" />
+                                    {{ __('AI Notes') }}
+                                    @if($generatedReport)
+                                        <span class="size-2 rounded-full bg-green-500"></span>
+                                    @endif
+                                </span>
+                            </button>
                         </div>
-                        <div class="flex items-center gap-2">
-                            @if($generatedReport)
-                                <flux:button variant="ghost" size="sm" wire:click="clearReport" icon="x-mark">
-                                    {{ __('Clear') }}
-                                </flux:button>
-                            @endif
-                        </div>
+
+                        @if($documentGenerated || $generatedReport)
+                            <flux:button variant="ghost" size="sm" wire:click="clearReport" icon="x-mark">
+                                {{ __('Clear') }}
+                            </flux:button>
+                        @endif
                     </div>
 
                     {{-- Content Area --}}
-                    <div class="flex-1 pt-4 overflow-auto">
-                        @if($errorMessage)
-                            <flux:callout variant="danger" icon="exclamation-circle" class="mb-4">
-                                {{ $errorMessage }}
-                            </flux:callout>
-                        @endif
-
-                        @if($isGenerating)
-                            <div class="flex flex-col items-center justify-center h-full py-16">
-                                <div class="relative">
-                                    <div class="animate-spin rounded-full h-12 w-12 border-2 border-zinc-200 dark:border-zinc-700"></div>
-                                    <div class="absolute inset-0 animate-spin rounded-full h-12 w-12 border-t-2 border-accent"></div>
-                                </div>
-                                <p class="mt-4 text-sm text-zinc-500">{{ __('Generating your report...') }}</p>
-                                <p class="text-xs text-zinc-400 mt-1">{{ __('This may take a few moments') }}</p>
-                            </div>
-                        @elseif($generatedReport)
-                            <article class="prose prose-sm dark:prose-invert max-w-none prose-headings:font-semibold prose-h1:text-xl prose-h2:text-lg prose-h3:text-base">
-                                {!! Str::markdown($generatedReport) !!}
-                            </article>
-                        @else
-                            <div class="flex flex-col items-center justify-center h-full py-16 text-center">
-                                <div class="p-4 rounded-full bg-zinc-100 dark:bg-zinc-800 mb-4">
-                                    <flux:icon name="document-text" class="size-8 text-zinc-400" />
-                                </div>
-                                <h3 class="font-medium text-zinc-700 dark:text-zinc-300">{{ __('No Report Yet') }}</h3>
-                                <p class="mt-2 text-sm text-zinc-500 max-w-xs">
-                                    {{ __('Select your options and click "Generate with AI" to create a report, or use "Export" to download a formatted document.') }}
-                                </p>
-
-                                @if(!$this->canGenerate && !empty($this->exportUrls))
-                                    <div class="mt-6">
-                                        <flux:dropdown>
-                                            <flux:button variant="outline" size="sm" icon="arrow-down-tray">
-                                                {{ __('Quick Export') }}
-                                            </flux:button>
-                                            <flux:menu>
+                    <div class="flex-1 overflow-hidden">
+                        @if($previewTab === 'document')
+                            {{-- Document Preview Tab --}}
+                            @if($documentGenerated && !empty($this->exportUrls))
+                                <div class="h-full flex flex-col">
+                                    <div class="flex-1 bg-zinc-100 dark:bg-zinc-900">
+                                        <iframe
+                                            src="{{ $this->previewPdfUrl }}"
+                                            class="w-full h-full border-0"
+                                            title="Document Preview"
+                                        ></iframe>
+                                    </div>
+                                    <div class="p-4 border-t border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800">
+                                        <div class="flex items-center justify-between">
+                                            <p class="text-sm text-zinc-500">{{ __('Document with AI-enhanced content') }}</p>
+                                            <div class="flex gap-2">
                                                 <a href="{{ $this->exportUrls['pdf'] }}" target="_blank">
-                                                    <flux:menu.item icon="document-arrow-down">{{ __('PDF') }}</flux:menu.item>
+                                                    <flux:button variant="outline" size="sm" icon="document-arrow-down">
+                                                        {{ __('PDF') }}
+                                                    </flux:button>
                                                 </a>
                                                 <a href="{{ $this->exportUrls['word'] }}" target="_blank">
-                                                    <flux:menu.item icon="document-text">{{ __('Word') }}</flux:menu.item>
+                                                    <flux:button variant="outline" size="sm" icon="document-text">
+                                                        {{ __('Word') }}
+                                                    </flux:button>
                                                 </a>
-                                            </flux:menu>
-                                        </flux:dropdown>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            @else
+                                <div class="flex flex-col items-center justify-center h-full py-16 text-center px-6">
+                                    <div class="p-4 rounded-full bg-zinc-100 dark:bg-zinc-800 mb-4">
+                                        <flux:icon name="document" class="size-8 text-zinc-400" />
+                                    </div>
+                                    <h3 class="font-medium text-zinc-700 dark:text-zinc-300">{{ __('No Document Preview') }}</h3>
+                                    <p class="mt-2 text-sm text-zinc-500 max-w-xs">
+                                        {{ __('Select your options and click "Generate Report" to preview the formatted document.') }}
+                                    </p>
+                                    @if($this->canGenerate)
+                                        <flux:button
+                                            variant="primary"
+                                            wire:click="generateReport"
+                                            class="mt-6"
+                                            icon="sparkles"
+                                            size="sm"
+                                        >
+                                            {{ __('Generate Report') }}
+                                        </flux:button>
+                                    @endif
+                                </div>
+                            @endif
+                        @else
+                            {{-- AI Notes Tab --}}
+                            <div class="h-full overflow-auto p-6">
+                                @if($errorMessage)
+                                    <flux:callout variant="warning" icon="exclamation-circle" class="mb-4">
+                                        {{ $errorMessage }}
+                                    </flux:callout>
+                                @endif
+
+                                @if($isGenerating)
+                                    <div class="flex flex-col items-center justify-center h-full py-16">
+                                        <div class="relative">
+                                            <div class="animate-spin rounded-full h-12 w-12 border-2 border-zinc-200 dark:border-zinc-700"></div>
+                                            <div class="absolute inset-0 animate-spin rounded-full h-12 w-12 border-t-2 border-accent"></div>
+                                        </div>
+                                        <p class="mt-4 text-sm text-zinc-500">{{ __('Generating AI notes...') }}</p>
+                                    </div>
+                                @elseif($generatedReport)
+                                    <article class="prose prose-sm dark:prose-invert max-w-none prose-headings:font-semibold prose-h1:text-xl prose-h2:text-lg prose-h3:text-base">
+                                        {!! Str::markdown($generatedReport) !!}
+                                    </article>
+                                @else
+                                    <div class="flex flex-col items-center justify-center h-full py-16 text-center">
+                                        <div class="p-4 rounded-full bg-zinc-100 dark:bg-zinc-800 mb-4">
+                                            <flux:icon name="sparkles" class="size-8 text-zinc-400" />
+                                        </div>
+                                        <h3 class="font-medium text-zinc-700 dark:text-zinc-300">{{ __('No AI Notes') }}</h3>
+                                        <p class="mt-2 text-sm text-zinc-500 max-w-xs">
+                                            @if($this->canUseAi)
+                                                {{ __('Click "Generate Report" to create AI-powered notes.') }}
+                                            @else
+                                                {{ __('AI is not available. Use the Document Preview tab instead.') }}
+                                            @endif
+                                        </p>
+                                        @if($this->canGenerate && $this->canUseAi)
+                                            <flux:button
+                                                variant="primary"
+                                                wire:click="generateReport"
+                                                class="mt-6"
+                                                icon="sparkles"
+                                                size="sm"
+                                            >
+                                                {{ __('Generate Report') }}
+                                            </flux:button>
+                                        @endif
                                     </div>
                                 @endif
                             </div>

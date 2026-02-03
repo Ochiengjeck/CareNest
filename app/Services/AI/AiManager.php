@@ -114,6 +114,12 @@ class AiManager
                 'icon' => 'clipboard-document-check',
                 'recommended_provider' => 'groq',
             ],
+            'discharge_reporting' => [
+                'label' => 'Discharge Reporting',
+                'description' => 'Generate discharge summaries, aftercare instructions, and crisis plans',
+                'icon' => 'arrow-right-start-on-rectangle',
+                'recommended_provider' => 'groq',
+            ],
         ];
     }
 

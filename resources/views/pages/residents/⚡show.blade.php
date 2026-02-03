@@ -34,7 +34,7 @@ class extends Component {
     #[Computed]
     public function resident(): Resident
     {
-        return Resident::with(['carePlans' => fn ($q) => $q->latest(), 'creator', 'updater'])->findOrFail($this->residentId);
+        return Resident::with(['carePlans' => fn ($q) => $q->latest(), 'creator', 'updater', 'discharge'])->findOrFail($this->residentId);
     }
 
     #[Computed]
@@ -142,9 +142,22 @@ class extends Component {
                 </div>
 
                 @can('manage-residents')
-                    <flux:button variant="primary" :href="route('residents.edit', $this->resident)" wire:navigate icon="pencil">
-                        {{ __('Edit') }}
-                    </flux:button>
+                    <div class="flex gap-2">
+                        @if($this->resident->status === 'active')
+                            <flux:button variant="filled" :href="route('residents.discharge', $this->resident)" wire:navigate icon="arrow-right-start-on-rectangle">
+                                {{ __('Discharge') }}
+                            </flux:button>
+                        @elseif($this->resident->status === 'discharged' && $this->resident->discharge)
+                            <a href="{{ route('residents.discharge.export.pdf', $this->resident->discharge) }}" target="_blank">
+                                <flux:button variant="outline" icon="document-arrow-down">
+                                    {{ __('Discharge Summary') }}
+                                </flux:button>
+                            </a>
+                        @endif
+                        <flux:button variant="primary" :href="route('residents.edit', $this->resident)" wire:navigate icon="pencil">
+                            {{ __('Edit') }}
+                        </flux:button>
+                    </div>
                 @endcan
             </div>
         </flux:card>

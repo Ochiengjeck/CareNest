@@ -17,11 +17,16 @@ class TherapyReportExportController extends Controller
     // Individual Session Exports
     // ──────────────────────────────────────────────
 
-    public function individualSessionPdf(TherapySession $session)
+    public function individualSessionPdf(Request $request, TherapySession $session)
     {
         $pdf = $this->reportService->individualSessionPdf($session);
 
         $filename = 'therapy_note_'.Str::slug($session->resident->full_name).'_'.$session->session_date->format('Y-m-d').'.pdf';
+
+        // If preview mode, stream inline instead of download
+        if ($request->boolean('preview')) {
+            return $pdf->stream($filename);
+        }
 
         return $pdf->download($filename);
     }
@@ -51,6 +56,11 @@ class TherapyReportExportController extends Controller
         $pdf = $this->reportService->progressSummaryPdf($resident, $request->date_from, $request->date_to);
 
         $filename = 'progress_summary_'.Str::slug($resident->full_name).'_'.$request->date_from.'_to_'.$request->date_to.'.pdf';
+
+        // If preview mode, stream inline instead of download
+        if ($request->boolean('preview')) {
+            return $pdf->stream($filename);
+        }
 
         return $pdf->download($filename);
     }
@@ -88,6 +98,11 @@ class TherapyReportExportController extends Controller
 
         $filename = 'caseload_'.Str::slug($therapist->name).'_'.$request->date_from.'_to_'.$request->date_to.'.pdf';
 
+        // If preview mode, stream inline instead of download
+        if ($request->boolean('preview')) {
+            return $pdf->stream($filename);
+        }
+
         return $pdf->download($filename);
     }
 
@@ -121,6 +136,11 @@ class TherapyReportExportController extends Controller
         $pdf = $this->reportService->residentHistoryPdf($resident);
 
         $filename = 'therapy_history_'.Str::slug($resident->full_name).'.pdf';
+
+        // If preview mode, stream inline instead of download
+        if ($request->boolean('preview')) {
+            return $pdf->stream($filename);
+        }
 
         return $pdf->download($filename);
     }

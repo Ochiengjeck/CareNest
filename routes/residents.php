@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\DischargeReportExportController;
 use Illuminate\Support\Facades\Route;
 
 // Residents
@@ -9,6 +10,13 @@ Route::middleware(['auth', 'verified', 'can:view-residents'])->group(function ()
     Route::middleware('can:manage-residents')->group(function () {
         Route::livewire('residents/create', 'pages::residents.create')->name('residents.create');
         Route::livewire('residents/{resident}/edit', 'pages::residents.edit')->name('residents.edit');
+        Route::livewire('residents/{resident}/discharge', 'pages::residents.discharge')->name('residents.discharge');
+
+        // Discharge Report Exports
+        Route::prefix('residents/discharge/export')->name('residents.discharge.export.')->group(function () {
+            Route::get('{discharge}/pdf', [DischargeReportExportController::class, 'dischargeSummaryPdf'])->name('pdf');
+            Route::get('{discharge}/word', [DischargeReportExportController::class, 'dischargeSummaryWord'])->name('word');
+        });
     });
 
     Route::livewire('residents/{resident}', 'pages::residents.show')->name('residents.show');
