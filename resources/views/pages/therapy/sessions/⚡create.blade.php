@@ -109,6 +109,13 @@ class extends Component {
     public function save(): void
     {
         $validated = $this->validate($this->therapySessionRules());
+
+        $resident = Resident::findOrFail($validated['resident_id']);
+        if ($resident->isInactive()) {
+            $this->addError('resident_id', __('Cannot schedule a session for a :status resident.', ['status' => $resident->status]));
+            return;
+        }
+
         $validated['created_by'] = auth()->id();
 
         if (empty($validated['challenge_index'])) {

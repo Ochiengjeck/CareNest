@@ -47,6 +47,12 @@ class extends Component {
     {
         $validated = $this->validate($this->vitalRules());
 
+        $resident = Resident::findOrFail($validated['resident_id']);
+        if ($resident->isInactive()) {
+            $this->addError('resident_id', __('Cannot record vitals for a :status resident.', ['status' => $resident->status]));
+            return;
+        }
+
         $validated['recorded_by'] = auth()->id();
 
         $vital = Vital::create($validated);

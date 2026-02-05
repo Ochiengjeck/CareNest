@@ -57,9 +57,21 @@ class extends Component {
         return Medication::with('resident')->findOrFail($this->medicationId);
     }
 
+    #[Computed]
+    public function residentIsInactive(): bool
+    {
+        return $this->medication->resident && $this->medication->resident->isInactive();
+    }
+
     public function save(): void
     {
         $validated = $this->validate($this->medicationRules());
+
+        // Restrict status for inactive residents
+        if ($this->residentIsInactive && !in_array($validated['status'], ['discontinued', 'completed'])) {
+            $this->addError('status', __('Only "Discontinued" or "Completed" status is allowed for a :status resident.', ['status' => $this->medication->resident->status]));
+            return;
+        }
 
         $this->medication->update($validated);
 
@@ -77,6 +89,15 @@ class extends Component {
                 <flux:subheading>{{ __('Update') }} {{ $this->medication->name }} {{ __('for') }} {{ $this->medication->resident->full_name }}</flux:subheading>
             </div>
         </div>
+
+        @if($this->residentIsInactive)
+            <flux:callout icon="exclamation-triangle" color="amber">
+                <flux:callout.heading>{{ __('Resident is :status', ['status' => $this->medication->resident->status]) }}</flux:callout.heading>
+                <flux:callout.text>
+                    {{ __('This medication can only be discontinued or completed. New medications cannot be added for this resident.') }}
+                </flux:callout.text>
+            </flux:callout>
+        @endif
 
         <form wire:submit="save" class="space-y-6">
             {{-- Medication Details --}}
@@ -105,12 +126,19 @@ class extends Component {
                         <flux:select.option value="other">{{ __('Other') }}</flux:select.option>
                     </flux:select>
 
-                    <flux:select wire:model="status" :label="__('Status')" required>
-                        <flux:select.option value="active">{{ __('Active') }}</flux:select.option>
-                        <flux:select.option value="on_hold">{{ __('On Hold') }}</flux:select.option>
-                        <flux:select.option value="completed">{{ __('Completed') }}</flux:select.option>
-                        <flux:select.option value="discontinued">{{ __('Discontinued') }}</flux:select.option>
-                    </flux:select>
+                    @if($this->residentIsInactive)
+                        <flux:select wire:model="status" :label="__('Status')" required>
+                            <flux:select.option value="completed">{{ __('Completed') }}</flux:select.option>
+                            <flux:select.option value="discontinued">{{ __('Discontinued') }}</flux:select.option>
+                        </flux:select>
+                    @else
+                        <flux:select wire:model="status" :label="__('Status')" required>
+                            <flux:select.option value="active">{{ __('Active') }}</flux:select.option>
+                            <flux:select.option value="on_hold">{{ __('On Hold') }}</flux:select.option>
+                            <flux:select.option value="completed">{{ __('Completed') }}</flux:select.option>
+                            <flux:select.option value="discontinued">{{ __('Discontinued') }}</flux:select.option>
+                        </flux:select>
+                    @endif
                 </div>
             </flux:card>
 

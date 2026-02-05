@@ -121,6 +121,19 @@ class extends Component {
         unset($this->images);
     }
 
+    public function toggleFeatured(int $id): void
+    {
+        $image = GalleryImage::findOrFail($id);
+
+        if (!$image->is_featured && GalleryImage::featured()->count() >= 5) {
+            $this->dispatch('featured-limit-reached');
+            return;
+        }
+
+        $image->update(['is_featured' => !$image->is_featured]);
+        unset($this->images);
+    }
+
     protected function resetForm(): void
     {
         $this->editingId = null;
@@ -158,11 +171,14 @@ class extends Component {
             <div class="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                 @forelse($this->images as $image)
                     <flux:card class="relative overflow-hidden">
-                        @if(!$image->is_active)
-                            <div class="absolute top-2 right-2 z-10">
+                        <div class="absolute top-2 right-2 z-10 flex gap-1">
+                            @if($image->is_featured)
+                                <flux:badge color="yellow">Featured</flux:badge>
+                            @endif
+                            @if(!$image->is_active)
                                 <flux:badge color="zinc">Inactive</flux:badge>
-                            </div>
-                        @endif
+                            @endif
+                        </div>
 
                         <div class="aspect-video bg-zinc-100 dark:bg-zinc-800 -mx-4 -mt-4 mb-4">
                             @if($image->image_path)
@@ -180,6 +196,7 @@ class extends Component {
                         <div class="flex justify-between items-center mt-4">
                             <span class="text-xs text-zinc-400">Order: {{ $image->sort_order }}</span>
                             <div class="flex gap-1">
+                                <flux:button variant="ghost" size="xs" wire:click="toggleFeatured({{ $image->id }})" icon="star" class="{{ $image->is_featured ? 'text-yellow-500' : '' }}" title="{{ $image->is_featured ? __('Remove from featured') : __('Mark as featured') }}" />
                                 <flux:button variant="ghost" size="xs" wire:click="edit({{ $image->id }})" icon="pencil" />
                                 <flux:button variant="ghost" size="xs" wire:click="toggleActive({{ $image->id }})" icon="{{ $image->is_active ? 'eye-slash' : 'eye' }}" />
                                 <flux:button variant="ghost" size="xs" wire:click="delete({{ $image->id }})" wire:confirm="Are you sure you want to delete this image?" icon="trash" class="text-red-600 hover:text-red-700" />
@@ -256,5 +273,12 @@ class extends Component {
                 </form>
             </div>
         </flux:modal>
+        @script
+        <script>
+            $wire.on('featured-limit-reached', () => {
+                Flux.toast({ text: 'Maximum of 5 featured images allowed.', heading: 'Limit Reached', variant: 'warning' })
+            })
+        </script>
+        @endscript
     </x-pages.admin.website-layout>
 </flux:main>

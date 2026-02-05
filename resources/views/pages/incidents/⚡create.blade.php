@@ -45,6 +45,14 @@ class extends Component {
     {
         $validated = $this->validate($this->incidentRules());
 
+        if (!empty($validated['resident_id'])) {
+            $resident = Resident::findOrFail($validated['resident_id']);
+            if ($resident->isInactive()) {
+                $this->addError('resident_id', __('Cannot report an incident for a :status resident.', ['status' => $resident->status]));
+                return;
+            }
+        }
+
         $validated['reported_by'] = auth()->id();
 
         $incident = Incident::create($validated);

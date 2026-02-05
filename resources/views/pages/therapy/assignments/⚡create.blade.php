@@ -57,6 +57,12 @@ class extends Component {
     {
         $validated = $this->validate($this->therapistAssignmentRules());
 
+        $resident = Resident::findOrFail($validated['resident_id']);
+        if ($resident->isInactive()) {
+            $this->addError('resident_id', __('Cannot assign a therapist to a :status resident.', ['status' => $resident->status]));
+            return;
+        }
+
         // Check for existing assignment
         $existing = TherapistAssignment::where('therapist_id', $validated['therapist_id'])
             ->where('resident_id', $validated['resident_id'])

@@ -177,6 +177,12 @@ class extends Component {
     {
         $validated = $this->validate($this->carePlanRules(residentRequired: true));
 
+        $resident = Resident::findOrFail($validated['resident_id']);
+        if ($resident->isInactive()) {
+            $this->addError('resident_id', __('Cannot create a care plan for a :status resident.', ['status' => $resident->status]));
+            return;
+        }
+
         $validated['created_by'] = auth()->id();
 
         $carePlan = CarePlan::create($validated);

@@ -115,6 +115,18 @@ class Resident extends Model
         });
     }
 
+    // Status helpers
+
+    public function isActive(): bool
+    {
+        return $this->status === 'active';
+    }
+
+    public function isInactive(): bool
+    {
+        return in_array($this->status, ['discharged', 'deceased']);
+    }
+
     // Accessors
 
     public function getFullNameAttribute(): string

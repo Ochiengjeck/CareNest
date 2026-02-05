@@ -5,9 +5,8 @@ use Illuminate\Support\Facades\Route;
 
 // Therapy Module Routes
 Route::middleware(['auth', 'verified'])->group(function () {
-    // Therapist's own dashboard and sessions (requires conduct-therapy)
+    // Therapist's own pages and sessions (requires conduct-therapy)
     Route::middleware(['can:conduct-therapy'])->group(function () {
-        Route::livewire('therapy/dashboard', 'pages::therapy.dashboard')->name('therapy.dashboard');
         Route::livewire('therapy/my-residents', 'pages::therapy.my-residents')->name('therapy.my-residents');
         Route::livewire('therapy/sessions/create', 'pages::therapy.sessions.create')->name('therapy.sessions.create');
         Route::livewire('therapy/sessions/{session}/document', 'pages::therapy.sessions.document')->name('therapy.sessions.document');

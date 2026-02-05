@@ -54,7 +54,7 @@ class extends Component {
     #[Computed]
     public function session(): TherapySession
     {
-        return TherapySession::findOrFail($this->sessionId);
+        return TherapySession::with('resident')->findOrFail($this->sessionId);
     }
 
     #[Computed]
@@ -107,6 +107,12 @@ class extends Component {
         ];
     }
 
+    #[Computed]
+    public function residentIsInactive(): bool
+    {
+        return $this->session->resident && $this->session->resident->isInactive();
+    }
+
     public function save(): void
     {
         $validated = $this->validate($this->therapySessionEditRules());
@@ -114,6 +120,12 @@ class extends Component {
 
         if (empty($validated['challenge_index'])) {
             $validated['challenge_index'] = null;
+        }
+
+        // Restrict status for inactive residents
+        if ($this->residentIsInactive && !in_array($validated['status'], ['cancelled', 'completed'])) {
+            $this->addError('status', __('Only "Completed" or "Cancelled" status is allowed for a :status resident.', ['status' => $this->session->resident->status]));
+            return;
         }
 
         $this->session->update($validated);
@@ -153,6 +165,15 @@ class extends Component {
             <flux:heading size="xl">{{ __('Edit Session') }}</flux:heading>
             <flux:subheading>{{ $this->session->session_date->format('F d, Y') }} - {{ $this->session->resident->full_name }}</flux:subheading>
         </div>
+
+        @if($this->residentIsInactive)
+            <flux:callout icon="exclamation-triangle" color="amber">
+                <flux:callout.heading>{{ __('Resident is :status', ['status' => $this->session->resident->status]) }}</flux:callout.heading>
+                <flux:callout.text>
+                    {{ __('This session can only be marked as completed or cancelled. New sessions cannot be scheduled for this resident.') }}
+                </flux:callout.text>
+            </flux:callout>
+        @endif
 
         <form wire:submit="save" class="space-y-6">
             {{-- Session Details --}}
@@ -208,12 +229,19 @@ class extends Component {
                         @endforeach
                     </flux:select>
 
-                    <flux:select wire:model="status" label="Status" required>
-                        <flux:select.option value="scheduled">{{ __('Scheduled') }}</flux:select.option>
-                        <flux:select.option value="completed">{{ __('Completed') }}</flux:select.option>
-                        <flux:select.option value="cancelled">{{ __('Cancelled') }}</flux:select.option>
-                        <flux:select.option value="no_show">{{ __('No Show') }}</flux:select.option>
-                    </flux:select>
+                    @if($this->residentIsInactive)
+                        <flux:select wire:model="status" label="Status" required>
+                            <flux:select.option value="completed">{{ __('Completed') }}</flux:select.option>
+                            <flux:select.option value="cancelled">{{ __('Cancelled') }}</flux:select.option>
+                        </flux:select>
+                    @else
+                        <flux:select wire:model="status" label="Status" required>
+                            <flux:select.option value="scheduled">{{ __('Scheduled') }}</flux:select.option>
+                            <flux:select.option value="completed">{{ __('Completed') }}</flux:select.option>
+                            <flux:select.option value="cancelled">{{ __('Cancelled') }}</flux:select.option>
+                            <flux:select.option value="no_show">{{ __('No Show') }}</flux:select.option>
+                        </flux:select>
+                    @endif
                 </div>
 
                 <div class="mt-4">

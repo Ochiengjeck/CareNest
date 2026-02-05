@@ -322,24 +322,24 @@ new class extends Component {
         $userId = $this->user->id;
         $myResidents = TherapistAssignment::forTherapist($userId)->active()->count();
         $todaySessions = TherapySession::forTherapist($userId)->today()->count();
-        $todayCompleted = TherapySession::forTherapist($userId)->today()->completed()->count();
 
         $weekStart = now()->startOfWeek();
         $weekEnd = now()->endOfWeek();
-        $weekSessions = TherapySession::forTherapist($userId)->inDateRange($weekStart, $weekEnd)->count();
-
-        $pendingNotes = TherapySession::forTherapist($userId)
+        $completedThisWeek = TherapySession::forTherapist($userId)
             ->completed()
-            ->where(function ($q) {
-                $q->whereNull('progress_notes')->orWhere('progress_notes', '');
-            })
+            ->whereBetween('session_date', [$weekStart, $weekEnd])
+            ->count();
+
+        $pendingDocumentation = TherapySession::forTherapist($userId)
+            ->where('status', 'completed')
+            ->whereNull('progress_notes')
             ->count();
 
         return [
-            ['title' => 'My Residents', 'value' => $myResidents, 'icon' => 'users', 'description' => 'Active assignments'],
-            ['title' => 'Sessions Today', 'value' => $todaySessions, 'icon' => 'clipboard-document-list', 'description' => $todayCompleted > 0 ? "{$todayCompleted} completed" : 'None completed yet'],
-            ['title' => 'This Week', 'value' => $weekSessions, 'icon' => 'calendar', 'description' => 'Total sessions'],
-            ['title' => 'Pending Notes', 'value' => $pendingNotes, 'icon' => 'pencil-square', 'description' => $pendingNotes > 0 ? 'Need documentation' : 'All documented'],
+            ['title' => "Today's Sessions", 'value' => $todaySessions, 'icon' => 'calendar', 'color' => 'accent'],
+            ['title' => 'Assigned Residents', 'value' => $myResidents, 'icon' => 'users', 'color' => 'green'],
+            ['title' => 'Completed This Week', 'value' => $completedThisWeek, 'icon' => 'check-circle', 'color' => 'purple'],
+            ['title' => 'Pending Documentation', 'value' => $pendingDocumentation, 'icon' => 'document-text', 'color' => 'amber'],
         ];
     }
 
@@ -347,9 +347,9 @@ new class extends Component {
     public function therapistActions(): array
     {
         return [
-            ['label' => 'My Dashboard', 'href' => route('therapy.dashboard'), 'icon' => 'heart'],
+            ['label' => 'New Session', 'href' => route('therapy.sessions.create'), 'icon' => 'plus', 'variant' => 'primary'],
             ['label' => 'My Residents', 'href' => route('therapy.my-residents'), 'icon' => 'users'],
-            ['label' => 'Sessions', 'href' => route('therapy.sessions.index'), 'icon' => 'clipboard-document-list'],
+            ['label' => 'Generate Report', 'href' => route('therapy.reports.generate'), 'icon' => 'document-chart-bar', 'permission' => 'view-reports'],
         ];
     }
 
@@ -368,7 +368,20 @@ new class extends Component {
     {
         return TherapySession::forTherapist($this->user->id)
             ->upcoming()
+            ->where('session_date', '>', today())
             ->with('resident')
+            ->take(5)
+            ->get();
+    }
+
+    #[Computed]
+    public function therapistPendingDocumentation(): \Illuminate\Database\Eloquent\Collection
+    {
+        return TherapySession::forTherapist($this->user->id)
+            ->where('status', 'completed')
+            ->whereNull('progress_notes')
+            ->with('resident')
+            ->orderBy('session_date', 'desc')
             ->take(5)
             ->get();
     }
@@ -756,60 +769,161 @@ new class extends Component {
         @if($this->isTherapist)
             <div class="space-y-6">
                 <flux:separator text="Therapy" />
-                <div class="grid gap-4 md:grid-cols-4">
+
+                {{-- Quick Stats --}}
+                <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                     @foreach($this->therapistStats as $stat)
-                        <x-dashboard.stat-card
-                            :title="$stat['title']"
-                            :value="$stat['value']"
-                            :icon="$stat['icon']"
-                            :description="$stat['description'] ?? null"
-                        />
+                        <flux:card>
+                            <div class="flex items-center gap-4">
+                                <div class="flex h-12 w-12 items-center justify-center rounded-lg
+                                    @if($stat['color'] === 'accent') theme-accent-bg-muted
+                                    @elseif($stat['color'] === 'green') bg-green-100 dark:bg-green-900/30
+                                    @elseif($stat['color'] === 'purple') bg-purple-100 dark:bg-purple-900/30
+                                    @elseif($stat['color'] === 'amber') bg-amber-100 dark:bg-amber-900/30
+                                    @else bg-zinc-100 dark:bg-zinc-800
+                                    @endif
+                                ">
+                                    <flux:icon :name="$stat['icon']" class="h-6 w-6
+                                        @if($stat['color'] === 'accent') theme-accent-text
+                                        @elseif($stat['color'] === 'green') text-green-600 dark:text-green-400
+                                        @elseif($stat['color'] === 'purple') text-purple-600 dark:text-purple-400
+                                        @elseif($stat['color'] === 'amber') text-amber-600 dark:text-amber-400
+                                        @else text-zinc-600 dark:text-zinc-400
+                                        @endif
+                                    " />
+                                </div>
+                                <div>
+                                    <div class="text-2xl font-bold">{{ $stat['value'] }}</div>
+                                    <div class="text-sm text-zinc-500 dark:text-zinc-400">{{ $stat['title'] }}</div>
+                                </div>
+                            </div>
+                        </flux:card>
                     @endforeach
                 </div>
-                <div class="grid gap-4 md:grid-cols-2">
-                    <x-dashboard.quick-actions :actions="$this->therapistActions" title="Therapy Actions" />
 
+                <div class="grid gap-6 lg:grid-cols-2">
                     {{-- Today's Sessions --}}
-                    <x-dashboard.widget-card title="Today's Sessions" icon="clipboard-document-list">
+                    <flux:card>
+                        <div class="flex items-center justify-between mb-4">
+                            <flux:heading size="sm">{{ __("Today's Sessions") }}</flux:heading>
+                            <flux:button variant="ghost" size="sm" :href="route('therapy.sessions.create')" wire:navigate icon="plus">
+                                {{ __('New Session') }}
+                            </flux:button>
+                        </div>
+
                         @if($this->therapistTodaySessions->isEmpty())
-                            <flux:text class="text-sm text-zinc-500">No sessions scheduled for today.</flux:text>
+                            <div class="py-8 text-center">
+                                <flux:icon name="calendar" class="mx-auto h-12 w-12 text-zinc-300 dark:text-zinc-600" />
+                                <p class="mt-2 text-sm text-zinc-500 dark:text-zinc-400">{{ __('No sessions scheduled for today') }}</p>
+                            </div>
                         @else
-                            <div class="divide-y divide-zinc-100 dark:divide-zinc-800">
+                            <div class="space-y-3">
                                 @foreach($this->therapistTodaySessions as $session)
-                                    <a href="{{ route('therapy.sessions.show', $session) }}" wire:navigate class="flex items-center justify-between py-2.5 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 -mx-1 px-1 rounded transition-colors">
-                                        <div class="min-w-0 flex-1">
-                                            <flux:text class="text-sm font-medium truncate">{{ $session->resident?->full_name }}</flux:text>
-                                            <flux:text class="text-xs text-zinc-500">{{ $session->formatted_time_range }} &middot; {{ $session->service_type_label }}</flux:text>
+                                    <div class="flex items-center justify-between rounded-lg border border-zinc-200 dark:border-zinc-700 p-3">
+                                        <div class="flex items-center gap-3">
+                                            <div class="text-sm font-medium text-zinc-600 dark:text-zinc-400">
+                                                {{ Carbon\Carbon::parse($session->start_time)->format('g:i A') }}
+                                            </div>
+                                            <div>
+                                                <div class="font-medium">{{ $session->resident->full_name }}</div>
+                                                <div class="text-sm text-zinc-500 dark:text-zinc-400">{{ $session->session_topic }}</div>
+                                            </div>
                                         </div>
-                                        <flux:badge size="sm" :color="$session->status_color">{{ $session->status_label }}</flux:badge>
-                                    </a>
+                                        <div class="flex items-center gap-2">
+                                            <flux:badge size="sm" :color="$session->status_color">{{ $session->status_label }}</flux:badge>
+                                            @if($session->status === 'completed' && !$session->progress_notes)
+                                                <flux:button variant="primary" size="sm" :href="route('therapy.sessions.document', $session)" wire:navigate>
+                                                    {{ __('Document') }}
+                                                </flux:button>
+                                            @elseif($session->status === 'scheduled')
+                                                <flux:button variant="ghost" size="sm" :href="route('therapy.sessions.show', $session)" wire:navigate icon="eye" />
+                                            @endif
+                                        </div>
+                                    </div>
                                 @endforeach
                             </div>
                         @endif
-                    </x-dashboard.widget-card>
-                </div>
+                    </flux:card>
 
-                {{-- Upcoming Sessions --}}
-                @if($this->therapistUpcomingSessions->isNotEmpty())
-                    <x-dashboard.widget-card title="Upcoming Sessions" icon="calendar">
-                        <div class="divide-y divide-zinc-100 dark:divide-zinc-800">
-                            @foreach($this->therapistUpcomingSessions as $session)
-                                <a href="{{ route('therapy.sessions.show', $session) }}" wire:navigate class="flex items-center justify-between py-2.5 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 -mx-1 px-1 rounded transition-colors">
-                                    <div class="min-w-0 flex-1">
-                                        <flux:text class="text-sm font-medium truncate">{{ $session->resident?->full_name }}</flux:text>
-                                        <flux:text class="text-xs text-zinc-500">{{ $session->session_date->format('M d') }} &middot; {{ $session->formatted_time_range }} &middot; {{ $session->service_type_label }}</flux:text>
-                                    </div>
-                                    <flux:badge size="sm" :color="$session->status_color">{{ $session->status_label }}</flux:badge>
-                                </a>
-                            @endforeach
-                        </div>
-                        <div class="mt-3 pt-3 border-t border-zinc-100 dark:border-zinc-800">
-                            <flux:button variant="ghost" size="sm" :href="route('therapy.sessions.index')" icon="arrow-right" icon-trailing wire:navigate>
-                                {{ __('View all sessions') }}
+                    {{-- Upcoming Sessions --}}
+                    <flux:card>
+                        <div class="flex items-center justify-between mb-4">
+                            <flux:heading size="sm">{{ __('Upcoming Sessions') }}</flux:heading>
+                            <flux:button variant="ghost" size="sm" :href="route('therapy.sessions.index')" wire:navigate>
+                                {{ __('View All') }}
                             </flux:button>
                         </div>
-                    </x-dashboard.widget-card>
+
+                        @if($this->therapistUpcomingSessions->isEmpty())
+                            <div class="py-8 text-center">
+                                <flux:icon name="calendar" class="mx-auto h-12 w-12 text-zinc-300 dark:text-zinc-600" />
+                                <p class="mt-2 text-sm text-zinc-500 dark:text-zinc-400">{{ __('No upcoming sessions') }}</p>
+                            </div>
+                        @else
+                            <div class="space-y-3">
+                                @foreach($this->therapistUpcomingSessions as $session)
+                                    <div class="flex items-center justify-between rounded-lg border border-zinc-200 dark:border-zinc-700 p-3">
+                                        <div>
+                                            <div class="font-medium">{{ $session->resident->full_name }}</div>
+                                            <div class="text-sm text-zinc-500 dark:text-zinc-400">
+                                                {{ $session->session_date->format('M d, Y') }} at {{ Carbon\Carbon::parse($session->start_time)->format('g:i A') }}
+                                            </div>
+                                        </div>
+                                        <flux:badge size="sm" :color="$session->service_type_color">{{ $session->service_type_label }}</flux:badge>
+                                    </div>
+                                @endforeach
+                            </div>
+                        @endif
+                    </flux:card>
+                </div>
+
+                {{-- Pending Documentation --}}
+                @if($this->therapistPendingDocumentation->isNotEmpty())
+                    <flux:card>
+                        <div class="flex items-center justify-between mb-4">
+                            <flux:heading size="sm">{{ __('Pending Documentation') }}</flux:heading>
+                        </div>
+
+                        <flux:table>
+                            <flux:table.columns>
+                                <flux:table.column>{{ __('Resident') }}</flux:table.column>
+                                <flux:table.column>{{ __('Session Date') }}</flux:table.column>
+                                <flux:table.column>{{ __('Topic') }}</flux:table.column>
+                                <flux:table.column class="w-24"></flux:table.column>
+                            </flux:table.columns>
+
+                            <flux:table.rows>
+                                @foreach($this->therapistPendingDocumentation as $session)
+                                    <flux:table.row :key="$session->id">
+                                        <flux:table.cell class="font-medium">{{ $session->resident->full_name }}</flux:table.cell>
+                                        <flux:table.cell>{{ $session->session_date->format('M d, Y') }}</flux:table.cell>
+                                        <flux:table.cell>{{ Str::limit($session->session_topic, 40) }}</flux:table.cell>
+                                        <flux:table.cell>
+                                            <flux:button variant="primary" size="sm" :href="route('therapy.sessions.document', $session)" wire:navigate>
+                                                {{ __('Document') }}
+                                            </flux:button>
+                                        </flux:table.cell>
+                                    </flux:table.row>
+                                @endforeach
+                            </flux:table.rows>
+                        </flux:table>
+                    </flux:card>
                 @endif
+
+                {{-- Quick Actions --}}
+                <div class="flex flex-wrap gap-3">
+                    <flux:button variant="primary" :href="route('therapy.sessions.create')" wire:navigate icon="plus">
+                        {{ __('New Session') }}
+                    </flux:button>
+                    <flux:button variant="ghost" :href="route('therapy.my-residents')" wire:navigate icon="users">
+                        {{ __('My Residents') }}
+                    </flux:button>
+                    @can('view-reports')
+                    <flux:button variant="ghost" :href="route('therapy.reports.generate')" wire:navigate icon="document-chart-bar">
+                        {{ __('Generate Report') }}
+                    </flux:button>
+                    @endcan
+                </div>
             </div>
         @endif
     @endif

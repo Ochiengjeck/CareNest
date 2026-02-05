@@ -70,7 +70,7 @@ class extends Component {
 }; ?>
 
 <flux:main>
-    <x-pages.admin.layout :heading="__('Edit Agency')" :subheading="$this->agency->name">
+    <x-pages.admin.settings-layout :heading="__('Edit Agency')" :subheading="$this->agency->name">
         <div class="space-y-8 max-w-2xl">
             @if($this->agency->is_institution)
                 <flux:callout icon="information-circle" color="blue">
@@ -162,5 +162,5 @@ class extends Component {
                 {{ __('Back to Agencies') }}
             </flux:button>
         </div>
-    </x-pages.admin.layout>
+    </x-pages.admin.settings-layout>
 </flux:main>

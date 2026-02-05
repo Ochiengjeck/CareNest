@@ -41,7 +41,7 @@ class extends Component {
 }; ?>
 
 <flux:main>
-    <x-pages.admin.layout :heading="__('Add Agency')" :subheading="__('Add a new agency or contact for discharge coordination')">
+    <x-pages.admin.settings-layout :heading="__('Add Agency')" :subheading="__('Add a new agency or contact for discharge coordination')">
         <form wire:submit="createAgency" class="space-y-6 max-w-2xl">
             <flux:card>
                 <flux:heading size="sm" class="mb-4">{{ __('Agency Information') }}</flux:heading>
@@ -96,5 +96,5 @@ class extends Component {
                 </flux:button>
             </div>
         </form>
-    </x-pages.admin.layout>
+    </x-pages.admin.settings-layout>
 </flux:main>

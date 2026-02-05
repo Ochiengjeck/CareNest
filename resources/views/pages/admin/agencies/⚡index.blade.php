@@ -79,7 +79,7 @@ class extends Component {
 }; ?>
 
 <flux:main>
-    <x-pages.admin.layout :heading="__('Agencies')" :subheading="__('Manage agency and contact information for discharges')">
+    <x-pages.admin.settings-layout :heading="__('Agencies')" :subheading="__('Manage agency and contact information for discharges')">
         <div class="space-y-6">
             <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div class="flex flex-1 gap-4">
@@ -203,5 +203,5 @@ class extends Component {
                 </div>
             </div>
         </flux:modal>
-    </x-pages.admin.layout>
+    </x-pages.admin.settings-layout>
 </flux:main>

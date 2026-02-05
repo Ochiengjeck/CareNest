@@ -16,12 +16,14 @@ class GalleryImage extends Model
         'alt_text',
         'sort_order',
         'is_active',
+        'is_featured',
     ];
 
     protected function casts(): array
     {
         return [
             'is_active' => 'boolean',
+            'is_featured' => 'boolean',
             'sort_order' => 'integer',
         ];
     }
@@ -38,6 +40,11 @@ class GalleryImage extends Model
     public function scopeActive($query)
     {
         return $query->where('is_active', true);
+    }
+
+    public function scopeFeatured($query)
+    {
+        return $query->where('is_featured', true);
     }
 
     public function scopeByCategory($query, string $category)

@@ -456,11 +456,13 @@ class extends Component {
             <flux:card class="space-y-4">
                 <div class="flex items-center justify-between">
                     <flux:heading size="sm">{{ __('Care Plans') }}</flux:heading>
-                    @can('manage-care-plans')
-                        <flux:button variant="primary" size="sm" :href="route('care-plans.create', $this->resident)" wire:navigate icon="plus">
-                            {{ __('Add Care Plan') }}
-                        </flux:button>
-                    @endcan
+                    @if($this->resident->isActive())
+                        @can('manage-care-plans')
+                            <flux:button variant="primary" size="sm" :href="route('care-plans.create', $this->resident)" wire:navigate icon="plus">
+                                {{ __('Add Care Plan') }}
+                            </flux:button>
+                        @endcan
+                    @endif
                 </div>
                 <flux:separator />
 
@@ -515,9 +517,11 @@ class extends Component {
                 <flux:card class="space-y-4">
                     <div class="flex items-center justify-between">
                         <flux:heading size="sm">{{ __('Active Medications') }}</flux:heading>
-                        <flux:button variant="primary" size="sm" :href="route('medications.create')" wire:navigate icon="plus">
-                            {{ __('Add Medication') }}
-                        </flux:button>
+                        @if($this->resident->isActive())
+                            <flux:button variant="primary" size="sm" :href="route('medications.create')" wire:navigate icon="plus">
+                                {{ __('Add Medication') }}
+                            </flux:button>
+                        @endif
                     </div>
                     <flux:separator />
 
@@ -567,9 +571,11 @@ class extends Component {
                 <flux:card class="space-y-4">
                     <div class="flex items-center justify-between">
                         <flux:heading size="sm">{{ __('Recent Vitals') }}</flux:heading>
-                        <flux:button variant="primary" size="sm" :href="route('vitals.create')" wire:navigate icon="plus">
-                            {{ __('Record Vitals') }}
-                        </flux:button>
+                        @if($this->resident->isActive())
+                            <flux:button variant="primary" size="sm" :href="route('vitals.create')" wire:navigate icon="plus">
+                                {{ __('Record Vitals') }}
+                            </flux:button>
+                        @endif
                     </div>
                     <flux:separator />
 
@@ -623,11 +629,13 @@ class extends Component {
                 <flux:card class="space-y-4">
                     <div class="flex items-center justify-between">
                         <flux:heading size="sm">{{ __('Incidents') }}</flux:heading>
-                        @can('report-incidents')
-                            <flux:button variant="primary" size="sm" :href="route('incidents.create')" wire:navigate icon="plus">
-                                {{ __('Report Incident') }}
-                            </flux:button>
-                        @endcan
+                        @if($this->resident->isActive())
+                            @can('report-incidents')
+                                <flux:button variant="primary" size="sm" :href="route('incidents.create')" wire:navigate icon="plus">
+                                    {{ __('Report Incident') }}
+                                </flux:button>
+                            @endcan
+                        @endif
                     </div>
                     <flux:separator />
 

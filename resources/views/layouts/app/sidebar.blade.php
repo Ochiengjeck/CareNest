@@ -37,18 +37,13 @@
                         {{ __('Users & Roles') }}
                     </flux:sidebar.item>
                     @can('manage-settings')
-                    <flux:sidebar.item icon="cog-6-tooth" :href="route('admin.settings.general')" :current="request()->routeIs('admin.settings.*')" wire:navigate>
+                    <flux:sidebar.item icon="cog-6-tooth" :href="route('admin.settings.general')" :current="request()->routeIs('admin.settings.*') || request()->routeIs('admin.agencies.*')" wire:navigate>
                         {{ __('System Settings') }}
                     </flux:sidebar.item>
                     @endcan
                     @can('view-audit-logs')
                     <flux:sidebar.item icon="document-text" :href="route('admin.logs.index')" :current="request()->routeIs('admin.logs.*')" wire:navigate>
                         {{ __('Audit Logs') }}
-                    </flux:sidebar.item>
-                    @endcan
-                    @can('manage-settings')
-                    <flux:sidebar.item icon="building-office" :href="route('admin.agencies.index')" :current="request()->routeIs('admin.agencies.*')" wire:navigate>
-                        {{ __('Agencies') }}
                     </flux:sidebar.item>
                     @endcan
                 </flux:sidebar.group>
@@ -159,9 +154,6 @@
                     class="grid"
                 >
                     @if(auth()->user()->hasRole('therapist'))
-                    <flux:sidebar.item icon="squares-2x2" :href="route('therapy.dashboard')" :current="request()->routeIs('therapy.dashboard')" wire:navigate>
-                        {{ __('My Dashboard') }}
-                    </flux:sidebar.item>
                     <flux:sidebar.item icon="users" :href="route('therapy.my-residents')" :current="request()->routeIs('therapy.my-residents')" wire:navigate>
                         {{ __('My Residents') }}
                     </flux:sidebar.item>

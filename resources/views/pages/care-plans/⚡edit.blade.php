@@ -53,6 +53,12 @@ class extends Component {
         return CarePlan::with('resident')->findOrFail($this->carePlanId);
     }
 
+    #[Computed]
+    public function residentIsInactive(): bool
+    {
+        return $this->carePlan->resident && $this->carePlan->resident->isInactive();
+    }
+
     public function save(): void
     {
         $validated = $this->validate($this->carePlanRules());
@@ -61,6 +67,12 @@ class extends Component {
 
         // Keep the original resident_id
         $validated['resident_id'] = $this->residentId;
+
+        // Restrict status for inactive residents
+        if ($this->residentIsInactive && !in_array($validated['status'], ['archived'])) {
+            $this->addError('status', __('Only "Archived" status is allowed for a :status resident.', ['status' => $carePlan->resident->status]));
+            return;
+        }
 
         $carePlan->update($validated);
 
@@ -110,6 +122,15 @@ class extends Component {
             </flux:card>
         @endif
 
+        @if($this->residentIsInactive)
+            <flux:callout icon="exclamation-triangle" color="amber">
+                <flux:callout.heading>{{ __('Resident is :status', ['status' => $this->carePlan->resident->status]) }}</flux:callout.heading>
+                <flux:callout.text>
+                    {{ __('This care plan can only be archived. New care plans cannot be created for this resident.') }}
+                </flux:callout.text>
+            </flux:callout>
+        @endif
+
         <form wire:submit="save" class="space-y-6">
             {{-- Care Plan Details --}}
             <flux:card class="space-y-4">
@@ -130,12 +151,18 @@ class extends Component {
                         <flux:select.option value="social">{{ __('Social') }}</flux:select.option>
                     </flux:select>
 
-                    <flux:select wire:model="status" :label="__('Status')" required>
-                        <flux:select.option value="draft">{{ __('Draft') }}</flux:select.option>
-                        <flux:select.option value="active">{{ __('Active') }}</flux:select.option>
-                        <flux:select.option value="under_review">{{ __('Under Review') }}</flux:select.option>
-                        <flux:select.option value="archived">{{ __('Archived') }}</flux:select.option>
-                    </flux:select>
+                    @if($this->residentIsInactive)
+                        <flux:select wire:model="status" :label="__('Status')" required>
+                            <flux:select.option value="archived">{{ __('Archived') }}</flux:select.option>
+                        </flux:select>
+                    @else
+                        <flux:select wire:model="status" :label="__('Status')" required>
+                            <flux:select.option value="draft">{{ __('Draft') }}</flux:select.option>
+                            <flux:select.option value="active">{{ __('Active') }}</flux:select.option>
+                            <flux:select.option value="under_review">{{ __('Under Review') }}</flux:select.option>
+                            <flux:select.option value="archived">{{ __('Archived') }}</flux:select.option>
+                        </flux:select>
+                    @endif
 
                     <flux:input wire:model="start_date" :label="__('Start Date')" type="date" required />
                     <flux:input wire:model="review_date" :label="__('Review Date')" type="date" />

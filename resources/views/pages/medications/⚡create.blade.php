@@ -134,6 +134,12 @@ class extends Component {
     {
         $validated = $this->validate($this->medicationRules());
 
+        $resident = Resident::findOrFail($validated['resident_id']);
+        if ($resident->isInactive()) {
+            $this->addError('resident_id', __('Cannot add medication for a :status resident.', ['status' => $resident->status]));
+            return;
+        }
+
         $validated['created_by'] = auth()->id();
 
         $medication = Medication::create($validated);

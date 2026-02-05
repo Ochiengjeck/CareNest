@@ -12,6 +12,10 @@
                     :current="request()->routeIs('admin.settings.ai')">
                     {{ __('AI Integration') }}
                 </flux:navlist.item>
+                <flux:navlist.item :href="route('admin.agencies.index')" wire:navigate
+                    :current="request()->routeIs('admin.agencies.*')">
+                    {{ __('Agencies') }}
+                </flux:navlist.item>
             </flux:navlist.group>
         </flux:navlist>
     </div>

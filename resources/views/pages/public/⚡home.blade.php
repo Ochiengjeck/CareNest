@@ -32,7 +32,7 @@ class extends Component {
     #[Computed]
     public function galleryImages()
     {
-        return GalleryImage::active()->ordered()->take(6)->get();
+        return GalleryImage::active()->featured()->ordered()->take(5)->get();
     }
 };
 

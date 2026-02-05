@@ -25,6 +25,12 @@ class extends Component {
 
     public function mount(Medication $medication): void
     {
+        if ($medication->resident && $medication->resident->isInactive()) {
+            session()->flash('error', __('Cannot administer medication for a :status resident.', ['status' => $medication->resident->status]));
+            $this->redirect(route('medications.show', $medication), navigate: true);
+            return;
+        }
+
         $this->medicationId = $medication->id;
         $this->medication_id = (string) $medication->id;
         $this->administered_at = now()->format('Y-m-d\TH:i');
