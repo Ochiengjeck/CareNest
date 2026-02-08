@@ -1,6 +1,10 @@
 <x-layouts::auth>
     <div class="flex flex-col gap-6">
-        <x-auth-header :title="__('Forgot password?')" :description="__('No worries, we\'ll send you reset instructions')" />
+        <x-auth-header
+            :title="__('Forgot password?')"
+            :description="__('No worries, we\'ll send you reset instructions')"
+            :eyebrow="__('Account help')"
+        />
 
         <!-- Session Status -->
         <x-auth-session-status class="text-center" :status="session('status')" />

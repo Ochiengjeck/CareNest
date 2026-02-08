@@ -8,6 +8,7 @@
         <x-auth-header
             :title="__('Check your email')"
             :description="__('We\'ve sent a verification link to your email address. Click the link to verify your account.')"
+            :eyebrow="__('Verify account')"
         />
 
         @if (session('status') == 'verification-link-sent')

@@ -1,6 +1,10 @@
 <x-layouts::auth>
     <div class="flex flex-col gap-6">
-        <x-auth-header :title="__('Welcome back')" :description="__('Enter your credentials to access your account')" />
+        <x-auth-header
+            :title="__('Welcome back')"
+            :description="__('Enter your credentials to access your account')"
+            :eyebrow="__('Member access')"
+        />
 
         <!-- Session Status -->
         <x-auth-session-status class="text-center" :status="session('status')" />
@@ -63,5 +67,12 @@
                 {{ __('Sign in') }}
             </flux:button>
         </form>
+
+        @if (Route::has('register'))
+            <div class="text-center text-sm text-zinc-600 dark:text-zinc-400">
+                <span>{{ __('New to CareNest?') }}</span>
+                <flux:link :href="route('register')" wire:navigate class="font-medium">{{ __('Create an account') }}</flux:link>
+            </div>
+        @endif
     </div>
 </x-layouts::auth>

@@ -33,6 +33,7 @@
                 <x-auth-header
                     :title="__('Two-factor authentication')"
                     :description="__('Enter the 6-digit code from your authenticator app')"
+                    :eyebrow="__('Security check')"
                 />
             </div>
 
@@ -40,6 +41,7 @@
                 <x-auth-header
                     :title="__('Use recovery code')"
                     :description="__('Enter one of your emergency recovery codes to access your account')"
+                    :eyebrow="__('Security check')"
                 />
             </div>
 

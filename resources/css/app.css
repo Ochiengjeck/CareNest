@@ -116,6 +116,36 @@ select:focus[data-flux-control] {
     @apply outline-hidden ring-2 ring-accent ring-offset-2 ring-offset-accent-foreground;
 }
 
+/* Auth page theming */
+.auth-page {
+    background:
+        radial-gradient(700px circle at 8% 10%, color-mix(in oklch, var(--theme-primary-300, #7dd3fc) 30%, transparent), transparent 60%),
+        radial-gradient(900px circle at 90% -10%, #fde68a 0%, transparent 55%),
+        linear-gradient(180deg, #f8fafc 0%, #ffffff 40%, #f1f5f9 100%);
+}
+
+.dark .auth-page {
+    background:
+        radial-gradient(700px circle at 8% 10%, color-mix(in oklch, var(--theme-primary-400, #38bdf8) 35%, transparent), transparent 60%),
+        linear-gradient(160deg, #0b1220 0%, #0f172a 55%, #111827 100%);
+}
+
+.auth-card {
+    background: color-mix(in oklch, #ffffff 92%, transparent);
+    border-color: color-mix(in oklch, #e2e8f0 75%, transparent);
+    box-shadow:
+        0 24px 80px rgba(15, 23, 42, 0.12),
+        0 2px 8px rgba(15, 23, 42, 0.08);
+}
+
+.dark .auth-card {
+    background: color-mix(in oklch, #0f172a 88%, transparent);
+    border-color: color-mix(in oklch, #1f2937 75%, transparent);
+    box-shadow:
+        0 24px 80px rgba(2, 6, 23, 0.45),
+        0 2px 8px rgba(2, 6, 23, 0.35);
+}
+
 /* \[:where(&)\]:size-4 {
     @apply size-4;
 } */

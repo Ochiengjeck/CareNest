@@ -8,6 +8,7 @@
         <x-auth-header
             :title="__('Confirm your password')"
             :description="__('This is a secure area. Please confirm your password to continue.')"
+            :eyebrow="__('Secure area')"
         />
 
         <x-auth-session-status class="text-center" :status="session('status')" />

@@ -1,6 +1,10 @@
 <x-layouts::auth>
     <div class="flex flex-col gap-6">
-        <x-auth-header :title="__('Set new password')" :description="__('Your new password must be different from previous passwords')" />
+        <x-auth-header
+            :title="__('Set new password')"
+            :description="__('Your new password must be different from previous passwords')"
+            :eyebrow="__('Password reset')"
+        />
 
         <!-- Session Status -->
         <x-auth-session-status class="text-center" :status="session('status')" />
