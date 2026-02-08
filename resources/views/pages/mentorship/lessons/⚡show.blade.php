@@ -97,7 +97,7 @@ class extends Component {
 
         {{-- Content --}}
         <flux:card>
-            <x-mentorship.formatted-content :content="$this->lesson->content" />
+            <x-mentorship.lesson-viewer :content="$this->lesson->content" :title="$this->lesson->title" />
         </flux:card>
 
         {{-- Metadata --}}

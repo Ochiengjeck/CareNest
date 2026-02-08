@@ -58,10 +58,21 @@ trait MentorshipValidationRules
         return [
             'title' => ['required', 'string', 'max:255'],
             'category' => ['required', 'string', 'max:100'],
-            'content' => ['required', 'string', 'max:10000'],
+            'content' => ['required', 'array'],
+            'content.sections' => ['required', 'array', 'min:1'],
+            'content.sections.*.title' => ['required', 'string', 'max:255'],
+            'content.sections.*.content' => ['required', 'string'],
             'summary' => ['nullable', 'string', 'max:500'],
             'is_published' => ['boolean'],
             'visibility' => ['required', 'in:private,shared'],
+        ];
+    }
+
+    protected function mentorshipMediaRules(): array
+    {
+        return [
+            'mediaUploads.*' => ['nullable', 'file', 'mimes:jpeg,jpg,png,gif,pdf,doc,docx', 'max:10240'],
+            'videoUrls.*' => ['nullable', 'url'],
         ];
     }
 

@@ -33,6 +33,7 @@ class MentorshipSession extends Model
             'start_time' => 'datetime:H:i',
             'end_time' => 'datetime:H:i',
             'participant_count' => 'integer',
+            'lesson_content_snapshot' => 'array',
         ];
     }
 
@@ -196,7 +197,7 @@ class MentorshipSession extends Model
         ]);
     }
 
-    public function snapshotLessonContent(?string $content = null): void
+    public function snapshotLessonContent(string|array|null $content = null): void
     {
         $this->update([
             'lesson_content_snapshot' => $content ?? $this->lesson?->content,

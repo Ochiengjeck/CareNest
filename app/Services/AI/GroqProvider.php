@@ -32,14 +32,20 @@ class GroqProvider implements AiProvider
         $startTime = microtime(true);
 
         try {
+            $payload = [
+                'model' => $model,
+                'messages' => $messages,
+                'temperature' => (float) ($options['temperature'] ?? 0.7),
+                'max_tokens' => (int) ($options['max_tokens'] ?? 2048),
+            ];
+
+            if ($options['json_mode'] ?? false) {
+                $payload['response_format'] = ['type' => 'json_object'];
+            }
+
             $response = Http::withToken($apiKey)
-                ->timeout(30)
-                ->post(self::BASE_URL.'/chat/completions', [
-                    'model' => $model,
-                    'messages' => $messages,
-                    'temperature' => (float) ($options['temperature'] ?? 0.7),
-                    'max_tokens' => (int) ($options['max_tokens'] ?? 2048),
-                ]);
+                ->timeout($options['json_mode'] ?? false ? 60 : 30)
+                ->post(self::BASE_URL.'/chat/completions', $payload);
 
             if ($response->failed()) {
                 Log::warning('Groq API error', ['status' => $response->status(), 'body' => $response->body()]);

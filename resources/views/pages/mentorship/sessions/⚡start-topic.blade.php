@@ -10,12 +10,15 @@ use Livewire\Attributes\Layout;
 use Livewire\Attributes\Locked;
 use Livewire\Attributes\Title;
 use Livewire\Component;
+use Livewire\WithFileUploads;
+use Illuminate\Support\Facades\Storage;
 
 new
 #[Layout('layouts.mentorship')]
 #[Title('Start Session')]
 class extends Component {
     use MentorshipValidationRules;
+    use WithFileUploads;
 
     #[Locked]
     public int $topicId;
@@ -24,10 +27,13 @@ class extends Component {
     public int $step = 2;
 
     // Lesson preparation
-    public string $lessonSource = 'write'; // generate, library, write
+    public string $lessonSource = 'write'; // write, library, generate
     public ?int $selectedLessonId = null;
-    public string $lessonContent = '';
+    public array $lessonContent = [];
     public bool $isGenerating = false;
+
+    // File upload
+    public $pendingUpload;
 
     // Session details
     public string $sessionDate = '';
@@ -45,10 +51,11 @@ class extends Component {
         $this->sessionDate = today()->format('Y-m-d');
         $this->startTime = now()->format('H:i');
         $this->lessonTitle = $topic->title;
+        $this->lessonContent = MentorshipLessonService::emptyContent();
 
         // Pre-fill lesson content if topic has AI lesson
         if ($topic->ai_lesson_content) {
-            $this->lessonContent = $topic->ai_lesson_content;
+            $this->lessonContent = MentorshipLessonService::wrapTextContent($topic->ai_lesson_content);
             $this->lessonSource = 'write';
         } elseif (app(MentorshipLessonService::class)->isAiAvailable()) {
             $this->lessonSource = 'generate';
@@ -81,7 +88,6 @@ class extends Component {
     {
         $this->lessonSource = $source;
 
-        // Reset lesson-specific state when switching
         if ($source !== 'library') {
             $this->selectedLessonId = null;
         }
@@ -126,7 +132,7 @@ class extends Component {
                 $this->lessonTitle = $lesson->title;
             }
         } else {
-            $this->lessonContent = '';
+            $this->lessonContent = MentorshipLessonService::emptyContent();
         }
     }
 
@@ -139,21 +145,37 @@ class extends Component {
                 $this->addError('selectedLessonId', __('Please select a lesson from the library.'));
                 return;
             }
-            // Ensure content is loaded for snapshot
-            if (empty($this->lessonContent)) {
+            if (empty($this->lessonContent['sections'] ?? [])) {
                 $lesson = MentorshipLesson::find($this->selectedLessonId);
                 if ($lesson) {
                     $this->lessonContent = $lesson->content;
                 }
             }
         } else {
-            if (empty(trim($this->lessonContent))) {
+            if (empty($this->lessonContent['sections'] ?? [])) {
                 $this->addError('lessonContent', __('Please prepare lesson content before proceeding.'));
                 return;
             }
         }
 
         $this->step = 3;
+    }
+
+    public function storeUploadedMedia(string $tmpFilename, string $originalName, string $type): ?string
+    {
+        if (!$this->pendingUpload) {
+            return null;
+        }
+
+        $path = $this->pendingUpload->store('mentorship/media', 'public');
+        $this->pendingUpload = null;
+
+        return $path;
+    }
+
+    public function removeUploadedMedia(string $path): void
+    {
+        Storage::disk('public')->delete($path);
     }
 
     public function startSession(): void
@@ -171,11 +193,11 @@ class extends Component {
             'start_time' => $this->startTime,
             'status' => 'in_progress',
             'session_notes' => $this->sessionNotes ?: null,
-            'lesson_content_snapshot' => $this->lessonContent ?: null,
+            'lesson_content_snapshot' => !empty($this->lessonContent['sections']) ? $this->lessonContent : null,
             'created_by' => auth()->id(),
         ]);
 
-        if ($this->saveLessonToLibrary && !empty($this->lessonContent) && $this->lessonSource !== 'library') {
+        if ($this->saveLessonToLibrary && !empty($this->lessonContent['sections']) && $this->lessonSource !== 'library') {
             $lesson = MentorshipLesson::create([
                 'title' => $this->lessonTitle ?: $this->topic->title,
                 'category' => $this->topic->category,
@@ -208,11 +230,11 @@ class extends Component {
             'start_time' => $this->startTime ?: null,
             'status' => 'planned',
             'session_notes' => $this->sessionNotes ?: null,
-            'lesson_content_snapshot' => $this->lessonContent ?: null,
+            'lesson_content_snapshot' => !empty($this->lessonContent['sections']) ? $this->lessonContent : null,
             'created_by' => auth()->id(),
         ]);
 
-        if ($this->saveLessonToLibrary && !empty($this->lessonContent) && $this->lessonSource !== 'library') {
+        if ($this->saveLessonToLibrary && !empty($this->lessonContent['sections']) && $this->lessonSource !== 'library') {
             $lesson = MentorshipLesson::create([
                 'title' => $this->lessonTitle ?: $this->topic->title,
                 'category' => $this->topic->category,
@@ -302,17 +324,15 @@ class extends Component {
             <flux:card>
                 <flux:heading size="lg" class="mb-4">{{ __('Prepare Lesson') }}</flux:heading>
 
-                {{-- Lesson Source Selection --}}
+                {{-- Lesson Source Selection (Reordered: Write → Library → AI) --}}
                 <div class="flex flex-wrap gap-3 mb-6">
-                    @if($this->aiAvailable)
-                        <flux:button
-                            :variant="$lessonSource === 'generate' ? 'primary' : 'ghost'"
-                            wire:click="setLessonSource('generate')"
-                            icon="sparkles"
-                        >
-                            {{ __('Generate with AI') }}
-                        </flux:button>
-                    @endif
+                    <flux:button
+                        :variant="$lessonSource === 'write' ? 'primary' : 'ghost'"
+                        wire:click="setLessonSource('write')"
+                        icon="pencil"
+                    >
+                        {{ __('Write Own') }}
+                    </flux:button>
 
                     <flux:button
                         :variant="$lessonSource === 'library' ? 'primary' : 'ghost'"
@@ -322,57 +342,21 @@ class extends Component {
                         {{ __('From Library') }}
                     </flux:button>
 
-                    <flux:button
-                        :variant="$lessonSource === 'write' ? 'primary' : 'ghost'"
-                        wire:click="setLessonSource('write')"
-                        icon="pencil"
-                    >
-                        {{ __('Write Own') }}
-                    </flux:button>
+                    @if($this->aiAvailable)
+                        <flux:button
+                            :variant="$lessonSource === 'generate' ? 'primary' : 'ghost'"
+                            wire:click="setLessonSource('generate')"
+                            icon="sparkles"
+                        >
+                            {{ __('Generate with AI') }}
+                        </flux:button>
+                    @endif
                 </div>
 
-                {{-- AI Generation --}}
-                @if($lessonSource === 'generate')
+                {{-- Write Own --}}
+                @if($lessonSource === 'write')
                     <div class="space-y-4">
-                        @if($this->aiAvailable)
-                            <div class="p-4 rounded-lg bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-purple-900/20 dark:to-indigo-900/20 border border-purple-200 dark:border-purple-800">
-                                <div class="flex items-center justify-between">
-                                    <div class="flex items-center gap-3">
-                                        <flux:icon.sparkles class="size-5 text-purple-600" />
-                                        <div>
-                                            <p class="font-medium text-purple-900 dark:text-purple-100">{{ __('AI Lesson Generation') }}</p>
-                                            <p class="text-sm text-purple-700 dark:text-purple-300">{{ __('Generate a structured lesson based on the topic') }}</p>
-                                        </div>
-                                    </div>
-                                    <flux:button
-                                        variant="primary"
-                                        wire:click="generateLesson"
-                                        :disabled="$isGenerating"
-                                        icon="sparkles"
-                                    >
-                                        <span wire:loading.remove wire:target="generateLesson">
-                                            {{ $lessonContent ? __('Regenerate') : __('Generate') }}
-                                        </span>
-                                        <span wire:loading wire:target="generateLesson">{{ __('Generating...') }}</span>
-                                    </flux:button>
-                                </div>
-                            </div>
-                        @else
-                            <div class="p-4 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800">
-                                <p class="text-sm text-amber-700 dark:text-amber-300">
-                                    {{ __('AI generation is not configured. Please use another method or contact an administrator.') }}
-                                </p>
-                            </div>
-                        @endif
-
-                        @if($lessonContent)
-                            <flux:textarea
-                                wire:model="lessonContent"
-                                :label="__('Generated Lesson')"
-                                rows="15"
-                                :description="__('You can edit the generated content as needed')"
-                            />
-                        @endif
+                        <x-mentorship.structured-editor wire-model="lessonContent" />
                     </div>
                 @endif
 
@@ -390,8 +374,8 @@ class extends Component {
                                 @endforeach
                             </flux:select>
 
-                            @if($lessonContent && $selectedLessonId)
-                                <x-mentorship.formatted-content :content="$lessonContent" class="p-4 rounded-lg bg-zinc-50 dark:bg-zinc-800 max-h-96 overflow-y-auto" />
+                            @if(!empty($lessonContent['sections']) && $selectedLessonId)
+                                <x-mentorship.formatted-content :content="$lessonContent" class="p-4 rounded-lg bg-zinc-50 dark:bg-zinc-800 max-h-[500px] overflow-y-auto" />
                             @endif
                         @else
                             <div class="p-4 rounded-lg bg-zinc-50 dark:bg-zinc-800 text-center py-8">
@@ -407,15 +391,38 @@ class extends Component {
                     </div>
                 @endif
 
-                {{-- Write Own --}}
-                @if($lessonSource === 'write')
+                {{-- AI Generation --}}
+                @if($lessonSource === 'generate')
                     <div class="space-y-4">
-                        <flux:textarea
-                            wire:model="lessonContent"
-                            :label="__('Lesson Content')"
-                            :placeholder="__('Write your lesson content here. Include learning objectives, key concepts, practical examples, and discussion questions...')"
-                            rows="15"
-                        />
+                        @if($this->aiAvailable)
+                            <div class="p-4 rounded-lg bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-purple-900/20 dark:to-indigo-900/20 border border-purple-200 dark:border-purple-800">
+                                <div class="flex items-center justify-between">
+                                    <div class="flex items-center gap-3">
+                                        <flux:icon.sparkles class="size-5 text-purple-600" />
+                                        <div>
+                                            <p class="font-medium text-purple-900 dark:text-purple-100">{{ __('AI Lesson Generation') }}</p>
+                                            <p class="text-sm text-purple-700 dark:text-purple-300">{{ __('Generate a structured lesson with sections, content, and media suggestions') }}</p>
+                                        </div>
+                                    </div>
+                                    <flux:button
+                                        variant="primary"
+                                        wire:click="generateLesson"
+                                        :disabled="$isGenerating"
+                                        icon="sparkles"
+                                    >
+                                        <span wire:loading.remove wire:target="generateLesson">
+                                            {{ !empty($lessonContent['sections']) ? __('Regenerate') : __('Generate') }}
+                                        </span>
+                                        <span wire:loading wire:target="generateLesson">{{ __('Generating...') }}</span>
+                                    </flux:button>
+                                </div>
+                            </div>
+                        @endif
+
+                        @if(!empty($lessonContent['sections']))
+                            {{-- Show generated content in the structured editor for editing --}}
+                            <x-mentorship.structured-editor wire-model="lessonContent" />
+                        @endif
                     </div>
                 @endif
 
@@ -427,7 +434,7 @@ class extends Component {
                 @enderror
 
                 {{-- Save to Library Option --}}
-                @if($lessonContent && $lessonSource !== 'library')
+                @if(!empty($lessonContent['sections']) && $lessonSource !== 'library')
                     <div class="mt-6 p-4 rounded-lg border border-zinc-200 dark:border-zinc-700">
                         <flux:checkbox wire:model.live="saveLessonToLibrary" :label="__('Save this lesson to my library')" />
 

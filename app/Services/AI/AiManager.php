@@ -135,6 +135,41 @@ class AiManager
         ];
     }
 
+    public function executeForUseCaseJson(string $useCase, string $userMessage, array $extraMessages = []): AiResponse
+    {
+        if (! $this->isEnabled()) {
+            return AiResponse::failure('AI integration is disabled.');
+        }
+
+        $config = $this->getUseCaseConfig($useCase);
+
+        if (! ($config['enabled'] ?? false)) {
+            return AiResponse::failure("AI use case '{$useCase}' is disabled.");
+        }
+
+        $provider = $this->provider($config['provider']);
+
+        if (! $provider->isConfigured()) {
+            return AiResponse::failure("Provider '{$config['provider']}' is not configured (missing API key).");
+        }
+
+        $messages = [];
+
+        if (! empty($config['system_prompt'])) {
+            $messages[] = ['role' => 'system', 'content' => $config['system_prompt']];
+        }
+
+        $messages = array_merge($messages, $extraMessages);
+        $messages[] = ['role' => 'user', 'content' => $userMessage];
+
+        return $provider->chat($messages, [
+            'model' => $config['model'],
+            'temperature' => $config['temperature'] ?? 0.7,
+            'max_tokens' => $config['max_tokens'] ?? 4096,
+            'json_mode' => true,
+        ]);
+    }
+
     public function isUseCaseEnabled(string $useCase): bool
     {
         $config = $this->getUseCaseConfig($useCase);

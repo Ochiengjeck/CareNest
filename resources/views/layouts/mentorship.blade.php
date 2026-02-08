@@ -153,5 +153,6 @@
         <x-mentorship.ai-mentor-chat />
 
         @fluxScripts
+        @stack('scripts')
     </body>
 </html>

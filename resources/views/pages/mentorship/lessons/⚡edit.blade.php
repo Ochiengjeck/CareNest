@@ -8,31 +8,37 @@ use Livewire\Attributes\Layout;
 use Livewire\Attributes\Locked;
 use Livewire\Attributes\Title;
 use Livewire\Component;
+use Livewire\WithFileUploads;
+use Illuminate\Support\Facades\Storage;
 
 new
 #[Layout('layouts.mentorship')]
 #[Title('Edit Lesson')]
 class extends Component {
     use MentorshipValidationRules;
+    use WithFileUploads;
 
     #[Locked]
     public int $lessonId;
 
     public string $title = '';
     public string $category = '';
-    public string $content = '';
+    public array $content = [];
     public string $summary = '';
     public bool $is_published = false;
     public string $visibility = 'private';
 
     public bool $isGenerating = false;
 
+    // File upload
+    public $pendingUpload;
+
     public function mount(MentorshipLesson $lesson): void
     {
         $this->lessonId = $lesson->id;
         $this->title = $lesson->title;
         $this->category = $lesson->category;
-        $this->content = $lesson->content;
+        $this->content = is_array($lesson->content) ? $lesson->content : MentorshipLessonService::wrapTextContent($lesson->content ?? '');
         $this->summary = $lesson->summary ?? '';
         $this->is_published = $lesson->is_published;
         $this->visibility = $lesson->visibility ?? 'private';
@@ -86,12 +92,29 @@ class extends Component {
         $this->isGenerating = false;
     }
 
+    public function storeUploadedMedia(string $tmpFilename, string $originalName, string $type): ?string
+    {
+        if (!$this->pendingUpload) {
+            return null;
+        }
+
+        $path = $this->pendingUpload->store('mentorship/media', 'public');
+        $this->pendingUpload = null;
+
+        return $path;
+    }
+
+    public function removeUploadedMedia(string $path): void
+    {
+        Storage::disk('public')->delete($path);
+    }
+
     public function save(): void
     {
         $this->validate($this->mentorshipLessonRules());
 
         // Regenerate summary if content changed significantly
-        if (empty($this->summary) && !empty($this->content)) {
+        if (empty($this->summary) && !empty($this->content['sections'])) {
             $service = app(MentorshipLessonService::class);
             $this->summary = $service->generateSummary($this->content) ?? '';
         }
@@ -177,13 +200,10 @@ class extends Component {
                 @endif
 
                 {{-- Content --}}
-                <flux:textarea
-                    wire:model="content"
-                    :label="__('Lesson Content')"
-                    :description="__('The full educational content. Use markdown headers (## Section) for structure.')"
-                    rows="20"
-                    required
-                />
+                <div>
+                    <flux:heading size="sm" class="mb-3">{{ __('Lesson Content') }}</flux:heading>
+                    <x-mentorship.structured-editor wire-model="content" />
+                </div>
 
                 {{-- Summary --}}
                 <flux:textarea

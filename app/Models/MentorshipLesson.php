@@ -28,6 +28,7 @@ class MentorshipLesson extends Model
     protected function casts(): array
     {
         return [
+            'content' => 'array',
             'is_ai_generated' => 'boolean',
             'is_published' => 'boolean',
             'times_used' => 'integer',
@@ -114,7 +115,13 @@ class MentorshipLesson extends Model
 
     public function getContentPreviewAttribute(): string
     {
-        return Str::limit(strip_tags($this->content), 200);
+        $content = $this->content;
+
+        if (is_array($content) && isset($content['sections'][0]['content'])) {
+            return Str::limit(strip_tags($content['sections'][0]['content']), 200);
+        }
+
+        return Str::limit(strip_tags(is_string($content) ? $content : ''), 200);
     }
 
     public function getSummaryOrPreviewAttribute(): string

@@ -33,13 +33,19 @@ class GeminiProvider implements AiProvider
         $contents = $this->convertMessages($messages);
 
         try {
-            $response = Http::timeout(60)
+            $generationConfig = [
+                'temperature' => (float) ($options['temperature'] ?? 0.7),
+                'maxOutputTokens' => (int) ($options['max_tokens'] ?? 2048),
+            ];
+
+            if ($options['json_mode'] ?? false) {
+                $generationConfig['responseMimeType'] = 'application/json';
+            }
+
+            $response = Http::timeout($options['json_mode'] ?? false ? 90 : 60)
                 ->post(self::BASE_URL."/{$model}:generateContent?key={$apiKey}", [
                     'contents' => $contents,
-                    'generationConfig' => [
-                        'temperature' => (float) ($options['temperature'] ?? 0.7),
-                        'maxOutputTokens' => (int) ($options['max_tokens'] ?? 2048),
-                    ],
+                    'generationConfig' => $generationConfig,
                 ]);
 
             if ($response->failed()) {

@@ -281,16 +281,25 @@ class extends Component {
 
         {{-- Lesson Content Used --}}
         @if($this->session->lesson_content_snapshot)
-            <flux:card class="border-purple-200 dark:border-purple-800">
-                <div class="flex items-center gap-2 mb-4">
-                    <flux:icon.book-open class="size-5 text-purple-600" />
-                    <flux:heading size="lg">{{ __('Lesson Content') }}</flux:heading>
-                    @if($this->session->lesson)
-                        <flux:badge color="purple" size="sm">{{ $this->session->lesson->title }}</flux:badge>
-                    @endif
+            <flux:card>
+                <div class="flex items-center justify-between mb-4">
+                    <div class="flex items-center gap-3">
+                        <div class="flex items-center justify-center size-9 rounded-xl bg-gradient-to-br from-purple-500 to-indigo-500 text-white shadow-sm">
+                            <flux:icon.book-open class="size-5" />
+                        </div>
+                        <div>
+                            <flux:heading size="lg">{{ __('Lesson Content') }}</flux:heading>
+                            @if($this->session->lesson)
+                                <p class="text-sm text-zinc-500">{{ $this->session->lesson->title }}</p>
+                            @endif
+                        </div>
+                    </div>
                 </div>
 
-                <x-mentorship.formatted-content :content="$this->session->lesson_content_snapshot" class="p-4 rounded-lg bg-purple-50 dark:bg-purple-900/20 max-h-[600px] overflow-y-auto" />
+                <x-mentorship.lesson-viewer
+                    :content="$this->session->lesson_content_snapshot"
+                    :title="$this->session->topic?->title"
+                />
             </flux:card>
         @endif
 

@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\MentorshipLesson;
 use App\Models\MentorshipTopic;
 use App\Services\AI\AiManager;
+use Illuminate\Support\Str;
 
 class MentorshipLessonService
 {
@@ -25,9 +26,9 @@ class MentorshipLessonService
     }
 
     /**
-     * Generate a structured lesson for a topic.
+     * Generate a structured lesson for a topic. Returns structured array or null.
      */
-    public function generateLesson(MentorshipTopic $topic): ?string
+    public function generateLesson(MentorshipTopic $topic): ?array
     {
         if (! $this->isAiAvailable()) {
             return null;
@@ -35,9 +36,13 @@ class MentorshipLessonService
 
         try {
             $prompt = $this->buildLessonPrompt($topic);
-            $response = $this->aiManager->executeForUseCase('mentorship_lesson_generation', $prompt);
+            $response = $this->aiManager->executeForUseCaseJson('mentorship_lesson_generation', $prompt);
 
-            return $response->success ? $response->content : null;
+            if ($response->success && $response->content) {
+                return $this->parseAndValidateJson($response->content);
+            }
+
+            return null;
         } catch (\Exception) {
             return null;
         }
@@ -46,7 +51,7 @@ class MentorshipLessonService
     /**
      * Generate lesson from title and category (for standalone lessons).
      */
-    public function generateLessonFromInput(string $title, string $category, ?string $description = null): ?string
+    public function generateLessonFromInput(string $title, string $category, ?string $description = null): ?array
     {
         if (! $this->isAiAvailable()) {
             return null;
@@ -54,6 +59,34 @@ class MentorshipLessonService
 
         try {
             $prompt = $this->buildPromptFromInput($title, $category, $description);
+            $response = $this->aiManager->executeForUseCaseJson('mentorship_lesson_generation', $prompt);
+
+            if ($response->success && $response->content) {
+                return $this->parseAndValidateJson($response->content);
+            }
+
+            return null;
+        } catch (\Exception) {
+            return null;
+        }
+    }
+
+    /**
+     * Generate a brief summary for lesson content.
+     */
+    public function generateSummary(array|string $content): ?string
+    {
+        if (! $this->isAiAvailable()) {
+            return null;
+        }
+
+        try {
+            $textContent = $this->extractTextFromContent($content);
+
+            $prompt = "Summarize the following educational lesson in 2-3 sentences for a preview card. "
+                . "Focus on the main learning objective and key takeaway.\n\n"
+                . "Lesson Content:\n{$textContent}";
+
             $response = $this->aiManager->executeForUseCase('mentorship_lesson_generation', $prompt);
 
             return $response->success ? $response->content : null;
@@ -63,25 +96,159 @@ class MentorshipLessonService
     }
 
     /**
-     * Generate a brief summary for lesson content.
+     * Parse and validate AI JSON response into structured content.
      */
-    public function generateSummary(string $content): ?string
+    protected function parseAndValidateJson(string $raw): ?array
     {
-        if (! $this->isAiAvailable()) {
+        $data = json_decode($raw, true);
+
+        if (! is_array($data) || ! isset($data['sections']) || ! is_array($data['sections'])) {
             return null;
         }
 
-        try {
-            $prompt = "Summarize the following educational lesson in 2-3 sentences for a preview card. "
-                . "Focus on the main learning objective and key takeaway.\n\n"
-                . "Lesson Content:\n{$content}";
+        // Ensure each section has required fields and unique IDs
+        foreach ($data['sections'] as &$section) {
+            $section['id'] = $section['id'] ?? (string) Str::uuid();
+            $section['title'] = $section['title'] ?? '';
+            $section['content'] = $section['content'] ?? '';
+            $section['media'] = $this->validateMediaEntries($section['media'] ?? []);
+            $section['media_suggestions'] = $section['media_suggestions'] ?? [];
 
-            $response = $this->aiManager->executeForUseCase('mentorship_lesson_generation', $prompt);
-
-            return $response->success ? $response->content : null;
-        } catch (\Exception) {
-            return null;
+            foreach ($section['subsections'] ?? [] as &$sub) {
+                $sub['id'] = $sub['id'] ?? (string) Str::uuid();
+                $sub['title'] = $sub['title'] ?? '';
+                $sub['content'] = $sub['content'] ?? '';
+                $sub['media'] = $this->validateMediaEntries($sub['media'] ?? []);
+                $sub['media_suggestions'] = $sub['media_suggestions'] ?? [];
+            }
+            unset($sub);
         }
+        unset($section);
+
+        // Recalculate metadata
+        $data['metadata'] = $this->calculateMetadata($data['sections']);
+
+        return $data;
+    }
+
+    /**
+     * Validate and filter media entries from AI response.
+     * Only keeps entries with valid video URLs (YouTube/Vimeo).
+     * Uploaded files (images/documents with paths) are also preserved.
+     */
+    protected function validateMediaEntries(array $media): array
+    {
+        $validated = [];
+
+        foreach ($media as $entry) {
+            if (! is_array($entry) || empty($entry['type'])) {
+                continue;
+            }
+
+            if ($entry['type'] === 'video' && ! empty($entry['url'])) {
+                $url = $entry['url'];
+                // Only keep valid YouTube or Vimeo URLs
+                if (
+                    preg_match('/(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/', $url) ||
+                    preg_match('/vimeo\.com\/(\d+)/', $url)
+                ) {
+                    $validated[] = [
+                        'type' => 'video',
+                        'url' => $url,
+                        'title' => $entry['title'] ?? 'Video',
+                    ];
+                }
+            } elseif (in_array($entry['type'], ['image', 'document']) && ! empty($entry['path'])) {
+                // User-uploaded files — preserve as-is
+                $validated[] = $entry;
+            }
+        }
+
+        return $validated;
+    }
+
+    /**
+     * Calculate metadata counts from sections.
+     */
+    public function calculateMetadata(array $sections): array
+    {
+        $subsectionCount = 0;
+        $videoCount = 0;
+        $imageCount = 0;
+        $documentCount = 0;
+        $suggestedVideoCount = 0;
+        $suggestedImageCount = 0;
+
+        foreach ($sections as $section) {
+            $subsectionCount += count($section['subsections'] ?? []);
+
+            foreach ($section['media'] ?? [] as $m) {
+                match ($m['type'] ?? '') {
+                    'video' => $videoCount++,
+                    'image' => $imageCount++,
+                    'document' => $documentCount++,
+                    default => null,
+                };
+            }
+
+            foreach ($section['media_suggestions'] ?? [] as $ms) {
+                match ($ms['type'] ?? '') {
+                    'video' => $suggestedVideoCount++,
+                    'image' => $suggestedImageCount++,
+                    default => null,
+                };
+            }
+
+            foreach ($section['subsections'] ?? [] as $sub) {
+                foreach ($sub['media'] ?? [] as $m) {
+                    match ($m['type'] ?? '') {
+                        'video' => $videoCount++,
+                        'image' => $imageCount++,
+                        'document' => $documentCount++,
+                        default => null,
+                    };
+                }
+                foreach ($sub['media_suggestions'] ?? [] as $ms) {
+                    match ($ms['type'] ?? '') {
+                        'video' => $suggestedVideoCount++,
+                        'image' => $suggestedImageCount++,
+                        default => null,
+                    };
+                }
+            }
+        }
+
+        return [
+            'section_count' => count($sections),
+            'subsection_count' => $subsectionCount,
+            'video_count' => $videoCount,
+            'image_count' => $imageCount,
+            'document_count' => $documentCount,
+            'suggested_video_count' => $suggestedVideoCount,
+            'suggested_image_count' => $suggestedImageCount,
+        ];
+    }
+
+    /**
+     * Extract plain text from structured or string content for summary generation.
+     */
+    protected function extractTextFromContent(array|string $content): string
+    {
+        if (is_string($content)) {
+            return Str::limit(strip_tags($content), 3000);
+        }
+
+        $text = '';
+        foreach ($content['sections'] ?? [] as $section) {
+            $text .= ($section['title'] ?? '') . "\n";
+            $text .= strip_tags($section['content'] ?? '') . "\n\n";
+            foreach ($section['subsections'] ?? [] as $sub) {
+                $text .= ($sub['title'] ?? '') . "\n";
+                $text .= strip_tags($sub['content'] ?? '') . "\n\n";
+            }
+        }
+
+        return Str::limit(trim($text), 3000);
     }
 
     /**
@@ -91,31 +258,7 @@ class MentorshipLessonService
     {
         $categoryContext = $this->getCategoryContext($topic->category);
 
-        return "You are an expert clinical educator creating a lesson for behavioral health staff at a recovery-focused care facility.
-
-Topic: {$topic->title}
-Category: {$topic->category}
-" . ($topic->description ? "Description: {$topic->description}\n" : '') . "
-{$categoryContext}
-
-Create a comprehensive educational lesson with the following structure:
-
-## LEARNING OBJECTIVES
-List 3-5 specific, measurable learning objectives staff will achieve.
-
-## KEY CONCEPTS
-Explain the main ideas with clear definitions and evidence-based context. Include relevant clinical terminology.
-
-## PRACTICAL APPLICATION
-Provide 2-3 real-world scenarios or case examples demonstrating how to apply these concepts with residents. Include specific techniques, phrases, or interventions.
-
-## DISCUSSION QUESTIONS
-Write 3-4 thought-provoking questions for group reflection or supervision discussions.
-
-## SUMMARY
-Summarize 3-5 key takeaways that staff should remember.
-
-Use professional language appropriate for healthcare staff. Keep the total length around 800-1200 words. Format with clear headers using ##.";
+        return $this->buildJsonPrompt($topic->title, $topic->category, $topic->description, $categoryContext);
     }
 
     /**
@@ -125,31 +268,75 @@ Use professional language appropriate for healthcare staff. Keep the total lengt
     {
         $categoryContext = $this->getCategoryContext($category);
 
-        return "You are an expert clinical educator creating a lesson for behavioral health staff at a recovery-focused care facility.
+        return $this->buildJsonPrompt($title, $category, $description, $categoryContext);
+    }
+
+    /**
+     * Build the JSON-mode lesson generation prompt.
+     */
+    protected function buildJsonPrompt(string $title, string $category, ?string $description, string $categoryContext): string
+    {
+        $descLine = $description ? "Description: {$description}\n" : '';
+
+        return <<<PROMPT
+You are an expert clinical educator creating a structured lesson for behavioral health staff at a recovery-focused care facility.
 
 Topic: {$title}
 Category: {$category}
-" . ($description ? "Additional Context: {$description}\n" : '') . "
+{$descLine}
 {$categoryContext}
 
-Create a comprehensive educational lesson with the following structure:
+Return a structured lesson as valid JSON with this exact schema:
 
-## LEARNING OBJECTIVES
-List 3-5 specific, measurable learning objectives staff will achieve.
+{
+  "sections": [
+    {
+      "id": "unique-string-id",
+      "title": "Section Title",
+      "content": "<p>HTML content using <strong>bold</strong>, <em>italic</em>, <ul><li>lists</li></ul>, <h3>subheadings</h3>, <h4>minor headings</h4></p>",
+      "media": [
+        {"type": "video", "url": "https://www.youtube.com/watch?v=REAL_VIDEO_ID", "title": "Video title describing the content"}
+      ],
+      "media_suggestions": [
+        {"type": "image", "description": "What image or diagram would illustrate this concept"}
+      ],
+      "subsections": [
+        {
+          "id": "unique-string-id",
+          "title": "Subsection Title",
+          "content": "<p>HTML content...</p>",
+          "media": [],
+          "media_suggestions": []
+        }
+      ]
+    }
+  ],
+  "metadata": {
+    "section_count": 4,
+    "subsection_count": 6,
+    "video_count": 3,
+    "suggested_image_count": 2
+  }
+}
 
-## KEY CONCEPTS
-Explain the main ideas with clear definitions and evidence-based context. Include relevant clinical terminology.
+Create 4-5 main sections:
+1. Learning Objectives - 3-5 specific, measurable objectives staff will achieve
+2. Key Concepts - Core ideas with clinical terminology, evidence-based context
+3. Practical Application - 2-3 real-world scenarios or case examples with techniques, phrases, interventions
+4. Discussion Questions - 3-4 thought-provoking questions for group reflection
+5. Summary - 3-5 key takeaways
 
-## PRACTICAL APPLICATION
-Provide 2-3 real-world scenarios or case examples demonstrating how to apply these concepts with residents. Include specific techniques, phrases, or interventions.
+Guidelines:
+- Use simple HTML tags in content: <p>, <strong>, <em>, <ul>, <ol>, <li>, <h3>, <h4>, <br>
+- Each main section should have 1-3 subsections where appropriate (Key Concepts and Practical Application benefit most from subsections)
+- Include 3-5 REAL YouTube video URLs in the media array. These MUST be actual, real, existing YouTube videos relevant to the topic. Use well-known educational channels (TED, TEDx, Khan Academy, Psych Hub, Dr. Todd Grande, Therapy in a Nutshell, etc.). Place videos in the sections they are most relevant to.
+- Suggest 1-3 helpful diagrams or images in media_suggestions
+- Keep total word count around 800-1200 words distributed across sections
+- Use professional language appropriate for healthcare staff
+- Generate unique string IDs for each section and subsection (e.g. "sec-1", "sec-2", "sub-1-1")
 
-## DISCUSSION QUESTIONS
-Write 3-4 thought-provoking questions for group reflection or supervision discussions.
-
-## SUMMARY
-Summarize 3-5 key takeaways that staff should remember.
-
-Use professional language appropriate for healthcare staff. Keep the total length around 800-1200 words. Format with clear headers using ##.";
+Return ONLY valid JSON. No markdown, no extra text.
+PROMPT;
     }
 
     /**
@@ -175,7 +362,7 @@ Use professional language appropriate for healthcare staff. Keep the total lengt
     public function saveToLibrary(
         string $title,
         string $category,
-        string $content,
+        array $content,
         ?int $sourceTopicId = null,
         ?int $userId = null
     ): MentorshipLesson {
@@ -191,5 +378,47 @@ Use professional language appropriate for healthcare staff. Keep the total lengt
             'is_published' => false,
             'created_by' => $userId,
         ]);
+    }
+
+    /**
+     * Create an empty structured content array.
+     */
+    public static function emptyContent(): array
+    {
+        return [
+            'sections' => [],
+            'metadata' => [
+                'section_count' => 0,
+                'subsection_count' => 0,
+                'video_count' => 0,
+                'image_count' => 0,
+                'document_count' => 0,
+            ],
+        ];
+    }
+
+    /**
+     * Wrap plain text into a structured content array (for legacy conversion).
+     */
+    public static function wrapTextContent(string $text): array
+    {
+        $html = Str::markdown($text, ['html_input' => 'escape', 'allow_unsafe_links' => false]);
+
+        return [
+            'sections' => [[
+                'id' => (string) Str::uuid(),
+                'title' => 'Lesson Content',
+                'content' => $html,
+                'media' => [],
+                'subsections' => [],
+            ]],
+            'metadata' => [
+                'section_count' => 1,
+                'subsection_count' => 0,
+                'video_count' => 0,
+                'image_count' => 0,
+                'document_count' => 0,
+            ],
+        ];
     }
 }

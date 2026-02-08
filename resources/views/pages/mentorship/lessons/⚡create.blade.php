@@ -7,21 +7,32 @@ use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Component;
+use Livewire\WithFileUploads;
+use Illuminate\Support\Facades\Storage;
 
 new
 #[Layout('layouts.mentorship')]
 #[Title('Create Lesson')]
 class extends Component {
     use MentorshipValidationRules;
+    use WithFileUploads;
 
     public string $title = '';
     public string $category = 'Mental Health';
-    public string $content = '';
+    public array $content = [];
     public string $summary = '';
     public bool $is_published = false;
     public string $visibility = 'private';
 
     public bool $isGenerating = false;
+
+    // File upload
+    public $pendingUpload;
+
+    public function mount(): void
+    {
+        $this->content = MentorshipLessonService::emptyContent();
+    }
 
     #[Computed]
     public function categoriesList(): array
@@ -65,12 +76,29 @@ class extends Component {
         $this->isGenerating = false;
     }
 
+    public function storeUploadedMedia(string $tmpFilename, string $originalName, string $type): ?string
+    {
+        if (!$this->pendingUpload) {
+            return null;
+        }
+
+        $path = $this->pendingUpload->store('mentorship/media', 'public');
+        $this->pendingUpload = null;
+
+        return $path;
+    }
+
+    public function removeUploadedMedia(string $path): void
+    {
+        Storage::disk('public')->delete($path);
+    }
+
     public function save(): void
     {
         $this->validate($this->mentorshipLessonRules());
 
         // Generate summary if content is provided but summary is empty
-        if (!empty($this->content) && empty($this->summary)) {
+        if (!empty($this->content['sections']) && empty($this->summary)) {
             $service = app(MentorshipLessonService::class);
             $this->summary = $service->generateSummary($this->content) ?? '';
         }
@@ -95,7 +123,7 @@ class extends Component {
         $this->validate($this->mentorshipLessonRules());
 
         // Generate summary if needed
-        if (!empty($this->content) && empty($this->summary)) {
+        if (!empty($this->content['sections']) && empty($this->summary)) {
             $service = app(MentorshipLessonService::class);
             $this->summary = $service->generateSummary($this->content) ?? '';
         }
@@ -156,7 +184,7 @@ class extends Component {
                                 <flux:icon.sparkles class="size-5 text-purple-600" />
                                 <div>
                                     <p class="font-medium text-purple-900 dark:text-purple-100">{{ __('AI Lesson Generation') }}</p>
-                                    <p class="text-sm text-purple-700 dark:text-purple-300">{{ __('Generate lesson content based on the title and category') }}</p>
+                                    <p class="text-sm text-purple-700 dark:text-purple-300">{{ __('Generate structured lesson content based on the title and category') }}</p>
                                 </div>
                             </div>
                             <flux:button
@@ -174,13 +202,10 @@ class extends Component {
                 @endif
 
                 {{-- Content --}}
-                <flux:textarea
-                    wire:model="content"
-                    :label="__('Lesson Content')"
-                    :description="__('The full educational content. Use markdown headers (## Section) for structure.')"
-                    rows="20"
-                    required
-                />
+                <div>
+                    <flux:heading size="sm" class="mb-3">{{ __('Lesson Content') }}</flux:heading>
+                    <x-mentorship.structured-editor wire-model="content" />
+                </div>
 
                 {{-- Summary --}}
                 <flux:textarea
@@ -207,7 +232,7 @@ class extends Component {
                     <flux:button variant="ghost" type="button" :href="route('mentorship.lessons.index')" wire:navigate>
                         {{ __('Cancel') }}
                     </flux:button>
-                    @if($this->aiAvailable && !empty($content))
+                    @if($this->aiAvailable && !empty($content['sections']))
                         <flux:button variant="filled" type="button" wire:click="saveAsAiGenerated" icon="sparkles">
                             {{ __('Save as AI Generated') }}
                         </flux:button>
