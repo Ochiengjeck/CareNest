@@ -120,3 +120,4 @@ require __DIR__.'/clinical.php';
 require __DIR__.'/staff.php';
 require __DIR__.'/therapy.php';
 require __DIR__.'/reports.php';
+require __DIR__.'/mentorship.php';

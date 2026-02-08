@@ -198,6 +198,18 @@
                     @endcan
                 </flux:sidebar.group>
                 @endcan
+
+                {{-- Mentorship Platform --}}
+                <flux:separator class="my-2" />
+                <flux:sidebar.item
+                    icon="academic-cap"
+                    :href="route('mentorship.dashboard')"
+                    :current="request()->routeIs('mentorship.*')"
+                    wire:navigate
+                    class="bg-gradient-to-r from-indigo-500/10 to-purple-500/10 dark:from-indigo-500/20 dark:to-purple-500/20 rounded-lg"
+                >
+                    {{ __('Mentorship Platform') }}
+                </flux:sidebar.item>
             </flux:sidebar.nav>
 
             <flux:spacer />

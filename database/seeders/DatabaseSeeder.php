@@ -27,6 +27,7 @@ class DatabaseSeeder extends Seeder
             // ShiftSeeder::class,
             // TherapistAssignmentSeeder::class,
             // TherapySessionSeeder::class,
+            // MentorshipSeeder::class,
         ]);
     }
 }

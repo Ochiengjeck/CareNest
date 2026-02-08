@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-CareNest is an AI-enhanced care home management system built with Laravel 12, Livewire v4, Tailwind CSS v4, and Flux UI. It provides role-based dashboards, user/role management, system settings, resident management with discharge workflows, care plans, clinical workflows (medications, vitals, incidents), staff directory with shift scheduling, therapy management with session documentation, a public-facing website with CMS, and AI integration (Groq + Google Gemini) for report generation, document analysis, care assistance, incident summarization, and therapy session reporting.
+CareNest is an AI-enhanced care home management system built with Laravel 12, Livewire v4, Tailwind CSS v4, and Flux UI. It provides role-based dashboards, user/role management, system settings, resident management with discharge workflows, care plans, clinical workflows (medications, vitals, incidents), staff directory with shift scheduling, therapy management with session documentation, a mentorship platform for staff learning (weekly topics, attachments, personal notes), a public-facing website with CMS, and AI integration (Groq + Google Gemini) for report generation, document analysis, care assistance, incident summarization, and therapy session reporting.
 
 ## Development Commands
 
@@ -52,29 +52,29 @@ npm run build
 - **Database**: SQLite (dev), configurable for production
 
 ### Roles & Permissions
-Five roles with 20 permissions across 8 groups:
-- `system_admin` - Full system access (all 20 permissions)
-- `care_home_manager` - Operational oversight (14 permissions)
+Five roles with 21 permissions across 9 groups:
+- `system_admin` - Full system access (all 21 permissions)
+- `care_home_manager` - Operational oversight (15 permissions, includes manage-mentorship)
 - `nurse` - Clinical focus (10 permissions)
 - `caregiver` - Daily care tasks (5 permissions)
 - `therapist` - Therapy focus (5 permissions: view-residents, view-care-plans, view-therapy, conduct-therapy, view-reports)
 
-Permission groups: User & System (manage-users, manage-roles, view-audit-logs), Residents (manage-residents, view-residents), Staff (manage-staff, view-staff), Clinical (manage-medications, administer-medications, manage-care-plans, view-care-plans), Therapy (manage-therapy, view-therapy, conduct-therapy), Activities & Incidents (log-activities, manage-incidents, report-incidents), Reports & Settings (view-reports, manage-settings).
+Permission groups: User & System (manage-users, manage-roles, view-audit-logs), Residents (manage-residents, view-residents), Staff (manage-staff, view-staff), Clinical (manage-medications, administer-medications, manage-care-plans, view-care-plans), Therapy (manage-therapy, view-therapy, conduct-therapy), Activities & Incidents (log-activities, manage-incidents, report-incidents), Reports & Settings (view-reports, manage-settings), Mentorship (manage-mentorship).
 
 Users can have multiple roles and direct permission overrides. Use `@can('permission-name')` in Blade.
 
 ### Key Directories
 - `app/Actions/Fortify/` - Authentication business logic (user creation, password reset)
-- `app/Concerns/` - 17 validation traits (one per domain: `PasswordValidationRules`, `UserValidationRules`, `ResidentValidationRules`, `CarePlanValidationRules`, `MedicationValidationRules`, `VitalValidationRules`, `IncidentValidationRules`, `GeneralSettingsValidationRules`, `AiSettingsValidationRules`, `ProfileValidationRules`, `StaffProfileValidationRules`, `QualificationValidationRules`, `ShiftValidationRules`, `TherapistAssignmentValidationRules`, `TherapySessionValidationRules`, `DischargeValidationRules`, `PublicWebsiteValidationRules`)
+- `app/Concerns/` - 18 validation traits (one per domain: `PasswordValidationRules`, `UserValidationRules`, `ResidentValidationRules`, `CarePlanValidationRules`, `MedicationValidationRules`, `VitalValidationRules`, `IncidentValidationRules`, `GeneralSettingsValidationRules`, `AiSettingsValidationRules`, `ProfileValidationRules`, `StaffProfileValidationRules`, `QualificationValidationRules`, `ShiftValidationRules`, `TherapistAssignmentValidationRules`, `TherapySessionValidationRules`, `DischargeValidationRules`, `PublicWebsiteValidationRules`, `MentorshipValidationRules`)
 - `app/Contracts/` - Interfaces (`AiProvider`)
 - `app/DataObjects/` - Value objects (`AiResponse`)
-- `app/Models/` - 25 Eloquent models (see Models section below)
+- `app/Models/` - 28 Eloquent models (see Models section below)
 - `app/Services/` - `SettingsService`, `ThemeService`, `TherapyReportService`, `DischargeReportService`, `AI/AiManager`, `AI/GroqProvider`, `AI/GeminiProvider`
 - `app/Http/Controllers/` - `TherapyReportExportController`, `DischargeReportExportController` (PDF/Word export endpoints)
 - `app/Console/Commands/` - `CreateSuperAdminCommand`, `ClearTestUsersCommand`
 - `resources/views/pages/` - Inline Livewire page components organized by feature
 - `resources/views/components/` - Reusable Blade components (dashboard widgets, admin layouts)
-- `database/seeders/` - 17 seeders covering all modules
+- `database/seeders/` - 18 seeders covering all modules
 
 ### Models
 Core: `User`, `SystemSetting`
@@ -82,6 +82,7 @@ Residents: `Resident`, `CarePlan`, `Discharge`
 Clinical: `Medication`, `MedicationLog`, `Vital`, `Incident`
 Staff: `StaffProfile`, `Qualification`, `Shift`, `Agency`
 Therapy: `TherapySession`, `TherapistAssignment`
+Mentorship: `MentorshipTopic`, `MentorshipAttachment`, `MentorshipNote`, `MentorshipLesson`, `MentorshipSession`
 Public Website: `Testimonial`, `TeamMember`, `FaqItem`, `GalleryImage`, `CareHomeImage`, `Service`, `Amenity`, `DailySchedule`, `ContactSubmission`
 System: `AuditLog`
 
@@ -92,7 +93,7 @@ System: `AuditLog`
 - **Global Helper**: `system_setting('key', 'default')` function available everywhere
 - **Action Classes**: Business logic in `app/Actions/`
 - **Database Sessions/Queue**: Both sessions and jobs use database driver
-- **SoftDeletes**: Used on resident-facing models (`Resident`, `CarePlan`, `Medication`, `Incident`) for data safety
+- **SoftDeletes**: Used on resident-facing models (`Resident`, `CarePlan`, `Medication`, `Incident`, `MentorshipTopic`) for data safety
 - **Audit Fields**: `created_by`, `updated_by`, `reviewed_by` FK fields on models for traceability
 - **Dynamic Theming**: `ThemeService` provides 6 color templates (Ocean Blue, Soft Sage, Deep Burgundy, Vibrant Orange, Blush Peach, custom)
 
@@ -104,6 +105,7 @@ System: `AuditLog`
 - Clinical routes: `routes/clinical.php` (medications, vitals, incidents)
 - Staff routes: `routes/staff.php` (staff directory, shift scheduling)
 - Therapy routes: `routes/therapy.php` (sessions, therapists, assignments, reports, PDF/Word exports)
+- Mentorship routes: `routes/mentorship.php` (dedicated platform with own layout, topics, CSV import, personal notes)
 - Reports routes: `routes/reports.php` (reporting dashboard, resident/clinical/staff/audit reports, AI generation)
 - Settings routes: `routes/settings.php` (profile, password, appearance, two-factor)
 - Auth routes managed by Fortify
@@ -167,6 +169,28 @@ System: `AuditLog`
 - `/therapy/sessions/{session}/edit` - Edit session (permission: `manage-therapy`)
 - `/therapy/reports/generate` - AI report generation (permissions: `view-therapy` + `view-reports`)
 - `/therapy/reports/export/.../{pdf|word}` - Export reports: individual session, progress summary, therapist caseload, resident history
+
+### Mentorship Module (`routes/mentorship.php`)
+The mentorship platform is a semi-independent module with its own dedicated layout (`layouts/mentorship.blade.php`) and sidebar. It provides a "separate product" feel while sharing authentication. All authenticated users can view topics and conduct teaching sessions; only users with `manage-mentorship` permission can manage content and view reports.
+
+- `/mentorship` - Mentorship dashboard with stats, teaching activity, upcoming topics
+- `/mentorship/topics/week` - Weekly grid view (7 days x 3 time slots: 10AM, 2PM, 6PM)
+- `/mentorship/topics/{topic}` - Topic detail with "Teach This Topic" button, attachments, personal notes
+- `/mentorship/my-sessions` - User's teaching sessions list with filters
+- `/mentorship/sessions/start` - Start new session wizard (select topic, prepare lesson, set details)
+- `/mentorship/sessions/start/{topic}` - Start session pre-selecting a topic
+- `/mentorship/sessions/{session}` - Session detail with complete/cancel actions
+- `/mentorship/sessions/{session}/edit` - Edit planned/in-progress session
+- `/mentorship/manage` - Topic management list (permission: `manage-mentorship`)
+- `/mentorship/topics/create` - Create topic with attachments (permission: `manage-mentorship`)
+- `/mentorship/topics/{topic}/edit` - Edit topic (permission: `manage-mentorship`)
+- `/mentorship/import/csv` - CSV bulk import for weekly schedules (permission: `manage-mentorship`)
+- `/mentorship/lessons` - Lessons library with visibility (private/shared) (permission: `manage-mentorship`)
+- `/mentorship/reports` - Teaching reports: sessions by mentor, category, topic coverage (permission: `manage-mentorship`)
+
+**CSV Format**: `Date, Day, 10:00 AM, 2:00 PM, 6:00 PM` where each time cell contains `Title (Category)`.
+
+**Categories**: Mental Health, Substance Use Disorder, Employment/Education, Physical Health, Financial/Housing, Psycho-Social/Family, Spirituality.
 
 ### Reports Module (`routes/reports.php`)
 - `/reports` - Reports dashboard (permission: `view-reports`)

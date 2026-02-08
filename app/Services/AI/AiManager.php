@@ -120,6 +120,18 @@ class AiManager
                 'icon' => 'arrow-right-start-on-rectangle',
                 'recommended_provider' => 'groq',
             ],
+            'mentorship_lesson_generation' => [
+                'label' => 'Mentorship Lesson Generation',
+                'description' => 'Generate educational lesson content for mentorship topics',
+                'icon' => 'academic-cap',
+                'recommended_provider' => 'groq',
+            ],
+            'mentorship_chat' => [
+                'label' => 'Mentorship AI Mentor',
+                'description' => 'AI mentor to help staff with learning and professional development',
+                'icon' => 'light-bulb',
+                'recommended_provider' => 'groq',
+            ],
         ];
     }
 

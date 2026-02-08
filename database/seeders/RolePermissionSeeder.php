@@ -47,6 +47,9 @@ class RolePermissionSeeder extends Seeder
             // Reports & Settings
             'view-reports',
             'manage-settings',
+
+            // Mentorship
+            'manage-mentorship',
         ];
 
         // Create permissions
@@ -74,6 +77,7 @@ class RolePermissionSeeder extends Seeder
             'manage-incidents',
             'report-incidents',
             'view-reports',
+            'manage-mentorship',
         ]);
 
         $nurse = Role::firstOrCreate(['name' => 'nurse']);
