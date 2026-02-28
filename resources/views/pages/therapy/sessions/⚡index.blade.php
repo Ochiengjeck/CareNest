@@ -115,6 +115,26 @@ class extends Component {
             || $this->dateTo !== '';
     }
 
+    #[Computed]
+    public function scheduledCount(): int
+    {
+        $query = TherapySession::query()->where('status', 'scheduled');
+        if (auth()->user()->can('conduct-therapy') && !auth()->user()->can('manage-therapy')) {
+            $query->forTherapist(auth()->id());
+        }
+        return $query->count();
+    }
+
+    #[Computed]
+    public function completedCount(): int
+    {
+        $query = TherapySession::query()->where('status', 'completed');
+        if (auth()->user()->can('conduct-therapy') && !auth()->user()->can('manage-therapy')) {
+            $query->forTherapist(auth()->id());
+        }
+        return $query->count();
+    }
+
     public function updatedSearch(): void { $this->resetPage(); }
     public function updatedTherapistFilter(): void { $this->resetPage(); }
     public function updatedServiceTypeFilter(): void { $this->resetPage(); }
@@ -139,59 +159,77 @@ class extends Component {
         </div>
 
         {{-- Filters --}}
-        <div class="flex flex-col gap-4">
-            <div class="flex flex-col gap-4 sm:flex-row sm:items-center">
-                <flux:input
-                    wire:model.live.debounce.300ms="search"
-                    placeholder="Search resident or topic..."
-                    icon="magnifying-glass"
-                    class="sm:max-w-xs"
-                />
+        <flux:card class="!p-4">
+            <div class="flex flex-col gap-4">
+                <div class="flex flex-col gap-4 sm:flex-row sm:items-center">
+                    <flux:input
+                        wire:model.live.debounce.300ms="search"
+                        placeholder="Search resident or topic..."
+                        icon="magnifying-glass"
+                        class="sm:max-w-xs"
+                    />
 
-                @can('manage-therapy')
-                <flux:select wire:model.live="therapistFilter" class="sm:max-w-xs">
-                    <flux:select.option value="">{{ __('All Therapists') }}</flux:select.option>
-                    @foreach($this->therapists as $id => $name)
-                        <flux:select.option value="{{ $id }}">{{ $name }}</flux:select.option>
-                    @endforeach
-                </flux:select>
-                @endcan
+                    @can('manage-therapy')
+                    <flux:select wire:model.live="therapistFilter" class="sm:max-w-xs">
+                        <flux:select.option value="">{{ __('All Therapists') }}</flux:select.option>
+                        @foreach($this->therapists as $id => $name)
+                            <flux:select.option value="{{ $id }}">{{ $name }}</flux:select.option>
+                        @endforeach
+                    </flux:select>
+                    @endcan
 
-                <flux:select wire:model.live="serviceTypeFilter" class="sm:max-w-xs">
-                    <flux:select.option value="">{{ __('All Service Types') }}</flux:select.option>
-                    @foreach($this->serviceTypes as $value => $label)
-                        <flux:select.option value="{{ $value }}">{{ $label }}</flux:select.option>
-                    @endforeach
-                </flux:select>
+                    <flux:select wire:model.live="serviceTypeFilter" class="sm:max-w-xs">
+                        <flux:select.option value="">{{ __('All Service Types') }}</flux:select.option>
+                        @foreach($this->serviceTypes as $value => $label)
+                            <flux:select.option value="{{ $value }}">{{ $label }}</flux:select.option>
+                        @endforeach
+                    </flux:select>
 
-                <flux:select wire:model.live="statusFilter" class="sm:max-w-xs">
-                    <flux:select.option value="">{{ __('All Statuses') }}</flux:select.option>
-                    @foreach($this->statuses as $value => $label)
-                        <flux:select.option value="{{ $value }}">{{ $label }}</flux:select.option>
-                    @endforeach
-                </flux:select>
+                    <flux:select wire:model.live="statusFilter" class="sm:max-w-xs">
+                        <flux:select.option value="">{{ __('All Statuses') }}</flux:select.option>
+                        @foreach($this->statuses as $value => $label)
+                            <flux:select.option value="{{ $value }}">{{ $label }}</flux:select.option>
+                        @endforeach
+                    </flux:select>
+                </div>
+
+                <div class="flex flex-col gap-4 sm:flex-row sm:items-center">
+                    <flux:input
+                        wire:model.live="dateFrom"
+                        type="date"
+                        label="From"
+                        class="sm:max-w-xs"
+                    />
+
+                    <flux:input
+                        wire:model.live="dateTo"
+                        type="date"
+                        label="To"
+                        class="sm:max-w-xs"
+                    />
+
+                    @if($this->hasActiveFilters())
+                        <flux:button variant="ghost" wire:click="clearFilters" icon="x-mark">
+                            {{ __('Clear Filters') }}
+                        </flux:button>
+                    @endif
+                </div>
             </div>
+        </flux:card>
 
-            <div class="flex flex-col gap-4 sm:flex-row sm:items-center">
-                <flux:input
-                    wire:model.live="dateFrom"
-                    type="date"
-                    label="From"
-                    class="sm:max-w-xs"
-                />
-
-                <flux:input
-                    wire:model.live="dateTo"
-                    type="date"
-                    label="To"
-                    class="sm:max-w-xs"
-                />
-
-                @if($this->hasActiveFilters())
-                    <flux:button variant="ghost" wire:click="clearFilters" icon="x-mark">
-                        {{ __('Clear Filters') }}
-                    </flux:button>
-                @endif
+        {{-- Stats Summary --}}
+        <div class="flex flex-wrap items-center gap-3">
+            <div class="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-xs font-medium">
+                <flux:icon.clipboard-document-list class="size-3.5" />
+                {{ $this->sessions->total() }} {{ __('total') }}
+            </div>
+            <div class="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-cyan-100 dark:bg-cyan-900/30 text-cyan-700 dark:text-cyan-300 text-xs font-medium">
+                <flux:icon.clock class="size-3.5" />
+                {{ $this->scheduledCount }} {{ __('scheduled') }}
+            </div>
+            <div class="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 text-xs font-medium">
+                <flux:icon.check-circle class="size-3.5" />
+                {{ $this->completedCount }} {{ __('completed') }}
             </div>
         </div>
 

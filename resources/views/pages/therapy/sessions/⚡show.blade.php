@@ -34,40 +34,75 @@ class extends Component {
     public function markCancelled(): void
     {
         $this->session->update(['status' => 'cancelled']);
+        $this->dispatch('session-cancelled');
     }
 
     public function markNoShow(): void
     {
         $this->session->update(['status' => 'no_show']);
+        $this->dispatch('session-no-show');
     }
 }; ?>
 
 <flux:main>
     <div class="max-w-4xl mx-auto space-y-6">
-        <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-            <div>
-                <div class="flex items-center gap-3 mb-2">
-                    <flux:button variant="ghost" size="sm" :href="route('therapy.sessions.index')" wire:navigate icon="arrow-left">
-                        {{ __('Back') }}
-                    </flux:button>
-                </div>
-                <flux:heading size="xl">{{ __('Session Details') }}</flux:heading>
-                <flux:subheading>{{ $this->session->session_date->format('F d, Y') }} - {{ $this->session->resident->full_name }}</flux:subheading>
-            </div>
+        {{-- Back Button --}}
+        <flux:button variant="ghost" size="sm" :href="route('therapy.sessions.index')" wire:navigate icon="arrow-left">
+            {{ __('Back to Sessions') }}
+        </flux:button>
 
-            <div class="flex items-center gap-2">
-                <flux:badge size="lg" :color="$this->session->status_color">
-                    {{ $this->session->status_label }}
-                </flux:badge>
-                <flux:badge size="lg" :color="$this->session->service_type_color">
-                    {{ $this->session->service_type_label }}
-                </flux:badge>
+        {{-- Session Header Card --}}
+        <flux:card>
+            <div class="flex items-start justify-between gap-4">
+                <div class="flex-1">
+                    <div class="flex items-center gap-2 mb-2">
+                        <flux:badge :color="$this->session->status_color" size="sm">
+                            {{ $this->session->status_label }}
+                        </flux:badge>
+                        <flux:badge :color="$this->session->service_type_color" size="sm">
+                            {{ $this->session->service_type_label }}
+                        </flux:badge>
+                    </div>
+
+                    <flux:heading size="xl" class="mb-2">{{ __('Session Details') }}</flux:heading>
+
+                    <div class="flex flex-wrap gap-4 text-sm text-zinc-600 dark:text-zinc-400">
+                        <div class="flex items-center gap-1">
+                            <flux:icon.calendar class="size-4" />
+                            {{ $this->session->session_date->format('l, F d, Y') }}
+                        </div>
+                        <div class="flex items-center gap-1">
+                            <flux:icon.clock class="size-4" />
+                            {{ $this->session->formatted_time_range }}
+                        </div>
+                        <div class="flex items-center gap-1">
+                            <flux:icon.arrow-path class="size-4" />
+                            {{ $this->session->duration_minutes }} {{ __('min') }}
+                        </div>
+                        <div class="flex items-center gap-1">
+                            <flux:icon.user class="size-4" />
+                            {{ $this->session->therapist->name }}
+                        </div>
+                        <div class="flex items-center gap-1">
+                            <flux:icon.user-circle class="size-4" />
+                            {{ $this->session->resident->full_name }}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-2">
+                    @can('manage-therapy')
+                        <flux:button variant="ghost" :href="route('therapy.sessions.edit', $this->session)" wire:navigate icon="pencil">
+                            {{ __('Edit') }}
+                        </flux:button>
+                    @endcan
+                </div>
             </div>
-        </div>
+        </flux:card>
 
         {{-- Quick Actions --}}
         @if($this->session->status === 'scheduled' && ($this->session->therapist_id === auth()->id() || auth()->user()->can('manage-therapy')))
-            <flux:card class="theme-accent-bg theme-accent-border">
+            <flux:card class="bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-900/20 dark:to-cyan-900/20 border-blue-200 dark:border-blue-800">
                 <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                     <div>
                         <flux:heading size="sm">{{ __('Session Actions') }}</flux:heading>
@@ -204,21 +239,21 @@ class extends Component {
 
                 <div class="space-y-6">
                     @if($this->session->interventions)
-                        <div>
+                        <div class="border-l-3 border-blue-300 dark:border-blue-700 pl-4">
                             <h4 class="text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">{{ __('Provider Support & Interventions') }}</h4>
                             <div class="text-sm text-zinc-600 dark:text-zinc-400 bg-zinc-50 dark:bg-zinc-800 rounded-lg p-4 whitespace-pre-wrap">{{ $this->session->interventions }}</div>
                         </div>
                     @endif
 
                     @if($this->session->progress_notes)
-                        <div>
+                        <div class="border-l-3 border-green-300 dark:border-green-700 pl-4">
                             <h4 class="text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">{{ __("Client's Progress") }}</h4>
                             <div class="text-sm text-zinc-600 dark:text-zinc-400 bg-zinc-50 dark:bg-zinc-800 rounded-lg p-4 whitespace-pre-wrap">{{ $this->session->progress_notes }}</div>
                         </div>
                     @endif
 
                     @if($this->session->client_plan)
-                        <div>
+                        <div class="border-l-3 border-purple-300 dark:border-purple-700 pl-4">
                             <h4 class="text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">{{ __("Client's Plan") }}</h4>
                             <div class="text-sm text-zinc-600 dark:text-zinc-400 bg-zinc-50 dark:bg-zinc-800 rounded-lg p-4 whitespace-pre-wrap">{{ $this->session->client_plan }}</div>
                         </div>
@@ -260,30 +295,38 @@ class extends Component {
         </flux:card>
 
         {{-- Actions --}}
-        <div class="flex flex-wrap justify-end gap-3">
-            @can('manage-therapy')
-            <flux:button variant="ghost" :href="route('therapy.sessions.edit', $this->session)" wire:navigate icon="pencil">
-                {{ __('Edit Session') }}
-            </flux:button>
-            @endcan
-            @can('view-reports')
-                {{-- Export buttons for completed + documented sessions --}}
-                @if($this->session->status === 'completed' && $this->session->progress_notes)
-                    <a href="{{ route('therapy.reports.export.individual.pdf', $this->session) }}" target="_blank">
-                        <flux:button variant="outline" icon="document-arrow-down">
-                            {{ __('Export PDF') }}
-                        </flux:button>
-                    </a>
-                    <a href="{{ route('therapy.reports.export.individual.word', $this->session) }}" target="_blank">
-                        <flux:button variant="outline" icon="document-text">
-                            {{ __('Export Word') }}
-                        </flux:button>
-                    </a>
-                @endif
-                <flux:button variant="primary" :href="route('therapy.reports.generate', ['session' => $this->session->id])" wire:navigate icon="document-chart-bar">
-                    {{ __('AI Report') }}
-                </flux:button>
-            @endcan
-        </div>
+        <flux:card>
+            <div class="flex flex-wrap justify-end gap-3">
+                @can('view-reports')
+                    {{-- Export buttons for completed + documented sessions --}}
+                    @if($this->session->status === 'completed' && $this->session->progress_notes)
+                        <a href="{{ route('therapy.reports.export.individual.pdf', $this->session) }}" target="_blank">
+                            <flux:button variant="outline" icon="document-arrow-down">
+                                {{ __('Export PDF') }}
+                            </flux:button>
+                        </a>
+                        <a href="{{ route('therapy.reports.export.individual.word', $this->session) }}" target="_blank">
+                            <flux:button variant="outline" icon="document-text">
+                                {{ __('Export Word') }}
+                            </flux:button>
+                        </a>
+                    @endif
+                    <flux:button variant="primary" :href="route('therapy.reports.generate', ['session' => $this->session->id])" wire:navigate icon="document-chart-bar">
+                        {{ __('AI Report') }}
+                    </flux:button>
+                @endcan
+            </div>
+        </flux:card>
     </div>
+
+    @script
+    <script>
+        $wire.on('session-cancelled', () => {
+            Flux.toast({ text: '{{ __('Session has been cancelled.') }}', heading: '{{ __('Cancelled') }}', variant: 'warning' })
+        })
+        $wire.on('session-no-show', () => {
+            Flux.toast({ text: '{{ __('Session marked as no show.') }}', heading: '{{ __('No Show') }}', variant: 'warning' })
+        })
+    </script>
+    @endscript
 </flux:main>

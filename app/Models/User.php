@@ -26,6 +26,8 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'signature_data',
+        'signature_updated_at',
     ];
 
     /**
@@ -38,6 +40,7 @@ class User extends Authenticatable
         'two_factor_secret',
         'two_factor_recovery_codes',
         'remember_token',
+        'signature_data',
     ];
 
     /**
@@ -50,6 +53,8 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'signature_data' => 'encrypted',
+            'signature_updated_at' => 'datetime',
         ];
     }
 
@@ -113,6 +118,30 @@ class User extends Authenticatable
     public function assignedResidents(): HasMany
     {
         return $this->hasMany(TherapistAssignment::class, 'therapist_id')->where('status', 'active');
+    }
+
+    // Signature methods
+
+    public function hasSignature(): bool
+    {
+        return $this->signature_data !== null;
+    }
+
+    public function getSignatureDataUri(): ?string
+    {
+        if (! $this->signature_data) {
+            return null;
+        }
+
+        $data = $this->signature_data;
+
+        // Already a data URI
+        if (str_starts_with($data, 'data:image/')) {
+            return $data;
+        }
+
+        // Raw base64
+        return 'data:image/png;base64,'.$data;
     }
 
     /**

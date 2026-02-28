@@ -106,21 +106,25 @@ class extends Component {
                 'label' => 'Session Note',
                 'description' => 'Single session documentation',
                 'icon' => 'document-text',
+                'color' => 'blue',
             ],
             'progress_summary' => [
                 'label' => 'Progress Summary',
                 'description' => 'Multi-session overview',
                 'icon' => 'chart-bar',
+                'color' => 'green',
             ],
             'therapist_caseload' => [
                 'label' => 'Caseload Report',
                 'description' => 'Therapist workload analysis',
                 'icon' => 'clipboard-document-list',
+                'color' => 'purple',
             ],
             'resident_history' => [
                 'label' => 'Therapy History',
                 'description' => 'Complete resident record',
                 'icon' => 'clock',
+                'color' => 'amber',
             ],
         ];
     }
@@ -239,10 +243,16 @@ class extends Component {
             $aiManager = app(AiManager::class);
             $prompt = $this->buildPrompt();
 
-            $response = $aiManager->executeForUseCase('therapy_reporting', $prompt);
+            $response = $aiManager->executeForUseCaseJson('therapy_reporting', $prompt);
 
-            if ($response->success) {
-                $this->generatedReport = $response->content;
+            if ($response->success && $response->content) {
+                $parsed = json_decode($response->content, true);
+                if (is_array($parsed) && !empty($parsed['sections'])) {
+                    $this->generatedReport = $this->convertSectionsToMarkdown($parsed['sections']);
+                } else {
+                    $this->errorMessage = 'Failed to parse AI response. Document preview is still available.';
+                    $this->previewTab = 'document';
+                }
             } else {
                 $this->errorMessage = $response->error ?? 'Failed to generate AI notes. Document preview is still available.';
                 $this->previewTab = 'document';
@@ -309,13 +319,9 @@ class extends Component {
         $prompt .= "3. Describes client's progress, responses, and behavioral observations\n";
         $prompt .= "4. Includes recommendations for continued care\n";
         $prompt .= "5. Uses professional clinical terminology\n";
-        $prompt .= "6. Maintains a third-person narrative style\n\n";
+        $prompt .= "6. Maintains a third-person narrative style\n";
 
-        if ($this->customInstructions) {
-            $prompt .= "ADDITIONAL INSTRUCTIONS:\n{$this->customInstructions}\n\n";
-        }
-
-        $prompt .= "Format the report with clear sections using markdown headers.";
+        $prompt .= $this->buildJsonSchemaInstruction();
 
         return $prompt;
     }
@@ -362,13 +368,9 @@ class extends Component {
         $prompt .= "2. Identifies patterns in engagement and progress\n";
         $prompt .= "3. Highlights key achievements and milestones\n";
         $prompt .= "4. Notes areas requiring continued focus\n";
-        $prompt .= "5. Includes recommendations for future treatment\n\n";
+        $prompt .= "5. Includes recommendations for future treatment\n";
 
-        if ($this->customInstructions) {
-            $prompt .= "ADDITIONAL INSTRUCTIONS:\n{$this->customInstructions}\n\n";
-        }
-
-        $prompt .= "Format with clear sections using markdown.";
+        $prompt .= $this->buildJsonSchemaInstruction();
 
         return $prompt;
     }
@@ -409,11 +411,9 @@ class extends Component {
         $prompt .= "1. Summarizes the therapist's productivity and caseload\n";
         $prompt .= "2. Analyzes session distribution and patterns\n";
         $prompt .= "3. Highlights workload balance and utilization\n";
-        $prompt .= "4. Provides recommendations for caseload management\n\n";
+        $prompt .= "4. Provides recommendations for caseload management\n";
 
-        if ($this->customInstructions) {
-            $prompt .= "ADDITIONAL INSTRUCTIONS:\n{$this->customInstructions}\n\n";
-        }
+        $prompt .= $this->buildJsonSchemaInstruction();
 
         return $prompt;
     }
@@ -460,13 +460,53 @@ class extends Component {
         $prompt .= "2. Tracks treatment focus areas over time\n";
         $prompt .= "3. Summarizes therapeutic approaches used\n";
         $prompt .= "4. Identifies long-term patterns and trends\n";
-        $prompt .= "5. Assesses overall treatment compliance and engagement\n\n";
+        $prompt .= "5. Assesses overall treatment compliance and engagement\n";
 
-        if ($this->customInstructions) {
-            $prompt .= "ADDITIONAL INSTRUCTIONS:\n{$this->customInstructions}\n\n";
-        }
+        $prompt .= $this->buildJsonSchemaInstruction();
 
         return $prompt;
+    }
+
+    protected function convertSectionsToMarkdown(array $sections): string
+    {
+        $markdown = '';
+        foreach ($sections as $section) {
+            $markdown .= '## ' . ($section['title'] ?? '') . "\n\n";
+            $markdown .= ($section['content'] ?? '') . "\n\n";
+
+            foreach ($section['subsections'] ?? [] as $sub) {
+                $markdown .= '### ' . ($sub['title'] ?? '') . "\n\n";
+                $markdown .= ($sub['content'] ?? '') . "\n\n";
+            }
+        }
+
+        return trim($markdown);
+    }
+
+    protected function buildJsonSchemaInstruction(): string
+    {
+        $customLine = $this->customInstructions
+            ? "Additional instructions: {$this->customInstructions}\n"
+            : '';
+
+        return "\n\nReturn a JSON object with this exact schema:\n"
+            . "{\n"
+            . "  \"sections\": [\n"
+            . "    {\n"
+            . "      \"title\": \"Section heading (e.g. Session Summary, Interventions Analysis, etc.)\",\n"
+            . "      \"content\": \"Section body text as plain prose\",\n"
+            . "      \"subsections\": [\n"
+            . "        {\n"
+            . "          \"title\": \"Optional subsection heading\",\n"
+            . "          \"content\": \"Subsection body text\"\n"
+            . "        }\n"
+            . "      ]\n"
+            . "    }\n"
+            . "  ]\n"
+            . "}\n\n"
+            . "Generate 4-6 clear sections covering the key areas of this report. Use professional clinical terminology. Write in third person.\n"
+            . $customLine
+            . "Return ONLY valid JSON. No markdown, no extra text.";
     }
 
     public function clearReport(): void
@@ -502,11 +542,20 @@ class extends Component {
                     </div>
                     <div class="divide-y divide-zinc-100 dark:divide-zinc-800">
                         @foreach($this->reportTypeConfig as $type => $config)
+                            @php
+                                $colorMap = [
+                                    'blue' => ['bg' => 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400', 'active' => 'bg-blue-600 dark:bg-blue-500 text-white'],
+                                    'green' => ['bg' => 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400', 'active' => 'bg-green-600 dark:bg-green-500 text-white'],
+                                    'purple' => ['bg' => 'bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400', 'active' => 'bg-purple-600 dark:bg-purple-500 text-white'],
+                                    'amber' => ['bg' => 'bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400', 'active' => 'bg-amber-600 dark:bg-amber-500 text-white'],
+                                ];
+                                $c = $colorMap[$config['color']] ?? $colorMap['blue'];
+                            @endphp
                             <button
                                 wire:click="setReportType('{{ $type }}')"
                                 class="w-full flex items-center gap-4 p-4 text-left transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-800/50 {{ $reportType === $type ? 'bg-zinc-50 dark:bg-zinc-800/50' : '' }}"
                             >
-                                <div class="flex-shrink-0 p-2 rounded-lg {{ $reportType === $type ? 'bg-accent text-white' : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400' }}">
+                                <div class="flex-shrink-0 p-2 rounded-lg {{ $reportType === $type ? $c['active'] : $c['bg'] }}">
                                     <flux:icon name="{{ $config['icon'] }}" class="size-5" />
                                 </div>
                                 <div class="flex-1 min-w-0">
@@ -592,7 +641,7 @@ class extends Component {
                         wire:click="generateReport"
                         wire:loading.attr="disabled"
                         :disabled="!$this->canGenerate"
-                        class="flex-1"
+                        class="flex-1 !bg-gradient-to-r !from-purple-600 !to-indigo-600 hover:!from-purple-700 hover:!to-indigo-700"
                         icon="sparkles"
                     >
                         <span wire:loading.remove wire:target="generateReport">{{ __('Generate Report') }}</span>

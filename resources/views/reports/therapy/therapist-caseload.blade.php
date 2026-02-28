@@ -216,6 +216,13 @@
         @endforeach
     </table>
 
+    @include('reports.partials.signature-block', [
+        'signer_name' => $generated_by,
+        'signer_title' => $signer_title ?? '',
+        'signed_date' => $generated_at,
+        'signature_image' => $signer_signature ?? null,
+    ])
+
     <div class="footer">
         Generated: {{ $generated_at }} by {{ $generated_by }}
     </div>

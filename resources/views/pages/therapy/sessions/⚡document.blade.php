@@ -105,12 +105,18 @@ class extends Component {
                 $context .= "\nProgress observed: {$this->progress_notes}\n";
             }
 
-            $prompt = $context . "\n\nGenerate a professional, detailed {$description}. Use clinical terminology appropriate for healthcare records. Write in third person. Be specific and evidence-based. Keep it concise but comprehensive (2-4 paragraphs).";
+            $prompt = $context . "\n\nGenerate a professional, detailed {$description}. Use clinical terminology appropriate for healthcare records. Write in third person. Be specific and evidence-based. Keep it concise but comprehensive (2-4 paragraphs).\n\n"
+                . "Return a JSON object with this exact schema:\n"
+                . "{\"content\": \"The generated clinical documentation text here\"}\n\n"
+                . "Return ONLY valid JSON. No markdown, no extra text.";
 
-            $response = $aiManager->executeForUseCase('therapy_reporting', $prompt);
+            $response = $aiManager->executeForUseCaseJson('therapy_reporting', $prompt);
 
-            if ($response->success) {
-                $this->{$field} = trim($response->content);
+            if ($response->success && $response->content) {
+                $parsed = json_decode($response->content, true);
+                if (is_array($parsed) && !empty($parsed['content'])) {
+                    $this->{$field} = trim($parsed['content']);
+                }
             }
         } catch (\Exception $e) {
             // Silent fail - user can still type manually
@@ -154,24 +160,44 @@ class extends Component {
         {{-- Session Summary --}}
         <flux:card class="bg-zinc-50 dark:bg-zinc-800/50">
             <div class="grid gap-4 sm:grid-cols-4 text-sm">
-                <div>
-                    <div class="text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase">{{ __('Service Type') }}</div>
-                    <div class="mt-1">
-                        <flux:badge :color="$this->session->service_type_color">{{ $this->session->service_type_label }}</flux:badge>
+                <div class="flex items-start gap-2">
+                    <div class="flex items-center justify-center size-6 rounded-full bg-blue-100 dark:bg-blue-900/30 shrink-0 mt-0.5">
+                        <flux:icon.tag class="size-3 text-blue-600 dark:text-blue-400" />
+                    </div>
+                    <div>
+                        <div class="text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase">{{ __('Service Type') }}</div>
+                        <div class="mt-0.5">
+                            <flux:badge :color="$this->session->service_type_color">{{ $this->session->service_type_label }}</flux:badge>
+                        </div>
                     </div>
                 </div>
-                <div>
-                    <div class="text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase">{{ __('Time') }}</div>
-                    <div class="mt-1 font-medium">{{ $this->session->formatted_time_range }}</div>
+                <div class="flex items-start gap-2">
+                    <div class="flex items-center justify-center size-6 rounded-full bg-green-100 dark:bg-green-900/30 shrink-0 mt-0.5">
+                        <flux:icon.clock class="size-3 text-green-600 dark:text-green-400" />
+                    </div>
+                    <div>
+                        <div class="text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase">{{ __('Time') }}</div>
+                        <div class="mt-0.5 font-medium">{{ $this->session->formatted_time_range }}</div>
+                    </div>
                 </div>
-                <div>
-                    <div class="text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase">{{ __('Topic') }}</div>
-                    <div class="mt-1 font-medium">{{ Str::limit($this->session->session_topic, 30) }}</div>
+                <div class="flex items-start gap-2">
+                    <div class="flex items-center justify-center size-6 rounded-full bg-purple-100 dark:bg-purple-900/30 shrink-0 mt-0.5">
+                        <flux:icon.book-open class="size-3 text-purple-600 dark:text-purple-400" />
+                    </div>
+                    <div>
+                        <div class="text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase">{{ __('Topic') }}</div>
+                        <div class="mt-0.5 font-medium">{{ Str::limit($this->session->session_topic, 30) }}</div>
+                    </div>
                 </div>
                 @if($this->session->challenge_label)
-                <div>
-                    <div class="text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase">{{ __('Tx Plan Index') }}</div>
-                    <div class="mt-1 font-medium">{{ $this->session->challenge_label }}</div>
+                <div class="flex items-start gap-2">
+                    <div class="flex items-center justify-center size-6 rounded-full bg-amber-100 dark:bg-amber-900/30 shrink-0 mt-0.5">
+                        <flux:icon.clipboard-document-check class="size-3 text-amber-600 dark:text-amber-400" />
+                    </div>
+                    <div>
+                        <div class="text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase">{{ __('Tx Plan Index') }}</div>
+                        <div class="mt-0.5 font-medium">{{ $this->session->challenge_label }}</div>
+                    </div>
                 </div>
                 @endif
             </div>
@@ -190,6 +216,7 @@ class extends Component {
                             wire:loading.attr="disabled"
                             wire:target="generateInterventions"
                             icon="sparkles"
+                            class="!text-purple-600 dark:!text-purple-400 hover:!bg-purple-50 dark:hover:!bg-purple-900/30"
                         >
                             <span wire:loading.remove wire:target="generateInterventions">{{ __('AI Assist') }}</span>
                             <span wire:loading wire:target="generateInterventions">{{ __('Generating...') }}</span>
@@ -220,6 +247,7 @@ class extends Component {
                             wire:loading.attr="disabled"
                             wire:target="generateProgressNotes"
                             icon="sparkles"
+                            class="!text-purple-600 dark:!text-purple-400 hover:!bg-purple-50 dark:hover:!bg-purple-900/30"
                         >
                             <span wire:loading.remove wire:target="generateProgressNotes">{{ __('AI Assist') }}</span>
                             <span wire:loading wire:target="generateProgressNotes">{{ __('Generating...') }}</span>
@@ -250,6 +278,7 @@ class extends Component {
                             wire:loading.attr="disabled"
                             wire:target="generateClientPlan"
                             icon="sparkles"
+                            class="!text-purple-600 dark:!text-purple-400 hover:!bg-purple-50 dark:hover:!bg-purple-900/30"
                         >
                             <span wire:loading.remove wire:target="generateClientPlan">{{ __('AI Assist') }}</span>
                             <span wire:loading wire:target="generateClientPlan">{{ __('Generating...') }}</span>

@@ -110,23 +110,37 @@ class TherapyReportService
         try {
             $aiManager = app(AiManager::class);
 
-            $prompt = 'You are a clinical documentation specialist. Polish and enhance the following therapy session documentation. '
-                .'Preserve ALL factual details and client quotes. Use professional clinical terminology. Maintain third-person narrative style. '
-                ."Return ONLY the enhanced text for each section, separated by the exact markers [INTERVENTIONS], [PROGRESS], [PLAN].\n\n"
+            $prompt = "You are a clinical documentation specialist. Polish and enhance the following therapy session documentation.\n"
+                ."Preserve ALL factual details and client quotes. Use professional clinical terminology. Maintain third-person narrative style.\n\n"
                 ."Client: {$session->resident->full_name}\n"
                 ."Session Date: {$session->session_date->format('m/d/Y')}\n"
                 ."Service Type: {$session->service_type_label}\n"
                 ."Topic: {$session->session_topic}\n\n"
-                ."[INTERVENTIONS]\n{$content['interventions']}\n\n"
-                ."[PROGRESS]\n{$content['progress_notes']}\n\n"
-                ."[PLAN]\n{$content['client_plan']}";
+                ."Original Interventions:\n{$content['interventions']}\n\n"
+                ."Original Progress Notes:\n{$content['progress_notes']}\n\n"
+                ."Original Client Plan:\n{$content['client_plan']}\n\n"
+                ."Return a JSON object with this exact schema:\n"
+                ."{\n"
+                ."  \"interventions\": \"Enhanced interventions text here\",\n"
+                ."  \"progress_notes\": \"Enhanced progress notes text here\",\n"
+                ."  \"client_plan\": \"Enhanced client plan text here\"\n"
+                ."}\n\n"
+                .'Return ONLY valid JSON. No markdown, no extra text.';
 
-            $response = $aiManager->executeForUseCase('therapy_reporting', $prompt);
+            $response = $aiManager->executeForUseCaseJson('therapy_reporting', $prompt);
 
             if ($response->success && $response->content) {
-                $enhanced = $this->parseEnhancedContent($response->content);
-                if ($enhanced) {
-                    return $enhanced;
+                $parsed = $this->parseJsonResponse($response->content);
+                if ($parsed
+                    && ! empty($parsed['interventions'])
+                    && ! empty($parsed['progress_notes'])
+                    && ! empty($parsed['client_plan'])
+                ) {
+                    return [
+                        'interventions' => trim($parsed['interventions']),
+                        'progress_notes' => trim($parsed['progress_notes']),
+                        'client_plan' => trim($parsed['client_plan']),
+                    ];
                 }
             }
         } catch (\Exception) {
@@ -134,27 +148,6 @@ class TherapyReportService
         }
 
         return $content;
-    }
-
-    protected function parseEnhancedContent(string $aiResponse): ?array
-    {
-        $sections = [];
-
-        if (preg_match('/\[INTERVENTIONS\]\s*(.+?)\s*\[PROGRESS\]/s', $aiResponse, $m)) {
-            $sections['interventions'] = trim($m[1]);
-        }
-        if (preg_match('/\[PROGRESS\]\s*(.+?)\s*\[PLAN\]/s', $aiResponse, $m)) {
-            $sections['progress_notes'] = trim($m[1]);
-        }
-        if (preg_match('/\[PLAN\]\s*(.+)/s', $aiResponse, $m)) {
-            $sections['client_plan'] = trim($m[1]);
-        }
-
-        if (count($sections) === 3) {
-            return $sections;
-        }
-
-        return null;
     }
 
     public function generateAnalysis(string $type, array $data): ?string
@@ -177,12 +170,57 @@ class TherapyReportService
                 return null;
             }
 
-            $response = $aiManager->executeForUseCase('therapy_reporting', $prompt);
+            $response = $aiManager->executeForUseCaseJson('therapy_reporting', $prompt);
 
-            return $response->success ? $response->content : null;
+            if ($response->success && $response->content) {
+                $parsed = $this->parseJsonResponse($response->content);
+                if ($parsed) {
+                    return $this->formatAnalysisSections($parsed, $type);
+                }
+            }
+
+            return null;
         } catch (\Exception) {
             return null;
         }
+    }
+
+    protected function parseJsonResponse(string $raw): ?array
+    {
+        $data = json_decode($raw, true);
+
+        return is_array($data) ? $data : null;
+    }
+
+    protected function formatAnalysisSections(array $sections, string $type): string
+    {
+        $headerMap = match ($type) {
+            'progress_summary' => [
+                'executive_summary' => 'EXECUTIVE SUMMARY',
+                'patterns_and_themes' => 'PATTERNS AND THEMES',
+                'recommendations' => 'RECOMMENDATIONS',
+            ],
+            'therapist_caseload' => [
+                'performance_summary' => 'PERFORMANCE SUMMARY',
+                'workload_analysis' => 'WORKLOAD ANALYSIS',
+                'recommendations' => 'RECOMMENDATIONS',
+            ],
+            'resident_history' => [
+                'treatment_overview' => 'TREATMENT OVERVIEW',
+                'progress_assessment' => 'PROGRESS ASSESSMENT',
+                'recommendations' => 'RECOMMENDATIONS',
+            ],
+            default => [],
+        };
+
+        $output = [];
+        foreach ($headerMap as $key => $header) {
+            if (! empty($sections[$key])) {
+                $output[] = "{$header}:\n{$sections[$key]}";
+            }
+        }
+
+        return implode("\n\n", $output);
     }
 
     protected function buildProgressAnalysisPrompt(array $data): string
@@ -202,10 +240,13 @@ class TherapyReportService
             ."Period: {$data['date_from']} to {$data['date_to']}\n"
             .'Total Sessions: '.count($data['sessions'])."\n\n"
             ."Sessions:\n{$sessionsSummary}\n\n"
-            ."Format your response with these exact headers:\n"
-            ."EXECUTIVE SUMMARY:\n[summary]\n\n"
-            ."PATTERNS AND THEMES:\n[analysis]\n\n"
-            ."RECOMMENDATIONS:\n[recommendations]";
+            ."Return a JSON object with this exact schema:\n"
+            ."{\n"
+            ."  \"executive_summary\": \"2-3 sentence summary of the client's therapy progress during the period\",\n"
+            ."  \"patterns_and_themes\": \"Analysis of patterns in engagement, progress themes, and observations\",\n"
+            ."  \"recommendations\": \"Specific recommendations for continued treatment and next steps\"\n"
+            ."}\n\n"
+            .'Return ONLY valid JSON. No markdown, no extra text.';
     }
 
     protected function buildCaseloadAnalysisPrompt(array $data): string
@@ -217,10 +258,13 @@ class TherapyReportService
             ."Completed: {$data['completed']}\n"
             ."Cancelled/No-Show: {$data['cancelled']}\n"
             ."Unique Residents: {$data['unique_residents']}\n\n"
-            ."Format your response with these exact headers:\n"
-            ."PERFORMANCE SUMMARY:\n[summary]\n\n"
-            ."WORKLOAD ANALYSIS:\n[analysis]\n\n"
-            ."RECOMMENDATIONS:\n[recommendations]";
+            ."Return a JSON object with this exact schema:\n"
+            ."{\n"
+            ."  \"performance_summary\": \"Summary of the therapist's productivity and clinical performance\",\n"
+            ."  \"workload_analysis\": \"Analysis of session distribution, caseload balance, and utilization\",\n"
+            ."  \"recommendations\": \"Recommendations for workload management and professional development\"\n"
+            ."}\n\n"
+            .'Return ONLY valid JSON. No markdown, no extra text.';
     }
 
     protected function buildHistoryAnalysisPrompt(array $data): string
@@ -235,10 +279,13 @@ class TherapyReportService
             ."Total Sessions: {$data['sessions']->count()}\n"
             .'Completed: '.$data['sessions']->where('status', 'completed')->count()."\n\n"
             ."Recent Sessions:\n{$sessionsSummary}\n\n"
-            ."Format your response with these exact headers:\n"
-            ."TREATMENT OVERVIEW:\n[overview]\n\n"
-            ."PROGRESS ASSESSMENT:\n[assessment]\n\n"
-            ."RECOMMENDATIONS:\n[recommendations]";
+            ."Return a JSON object with this exact schema:\n"
+            ."{\n"
+            ."  \"treatment_overview\": \"Overview of the client's complete therapy engagement history\",\n"
+            ."  \"progress_assessment\": \"Assessment of long-term progress, trends, and patterns\",\n"
+            ."  \"recommendations\": \"Recommendations for continued care and treatment adjustments\"\n"
+            ."}\n\n"
+            .'Return ONLY valid JSON. No markdown, no extra text.';
     }
 
     // ──────────────────────────────────────────────
@@ -267,6 +314,8 @@ class TherapyReportService
             'interventions' => $enhanced['interventions'],
             'progress_notes' => $enhanced['progress_notes'],
             'client_plan' => $enhanced['client_plan'],
+            'therapist_signature' => $session->therapist->getSignatureDataUri(),
+            'supervisor_signature' => $session->supervisor?->getSignatureDataUri(),
         ];
 
         return Pdf::loadView('reports.therapy.individual-session', $data)
@@ -300,6 +349,8 @@ class TherapyReportService
             'analysis' => $analysis,
             'generated_by' => auth()->user()->name ?? 'System',
             'generated_at' => now()->format('m/d/Y g:i A'),
+            'signer_signature' => auth()->user()?->getSignatureDataUri(),
+            'signer_title' => auth()->user()?->staffProfile?->position ?? '',
         ];
 
         return Pdf::loadView('reports.therapy.progress-summary', $data)
@@ -342,6 +393,8 @@ class TherapyReportService
             'analysis' => $analysis,
             'generated_by' => auth()->user()->name ?? 'System',
             'generated_at' => now()->format('m/d/Y g:i A'),
+            'signer_signature' => auth()->user()?->getSignatureDataUri(),
+            'signer_title' => auth()->user()?->staffProfile?->position ?? '',
         ];
 
         return Pdf::loadView('reports.therapy.therapist-caseload', $data)
@@ -369,6 +422,8 @@ class TherapyReportService
             'analysis' => $analysis,
             'generated_by' => auth()->user()->name ?? 'System',
             'generated_at' => now()->format('m/d/Y g:i A'),
+            'signer_signature' => auth()->user()?->getSignatureDataUri(),
+            'signer_title' => auth()->user()?->staffProfile?->position ?? '',
         ];
 
         return Pdf::loadView('reports.therapy.resident-history', $data)
@@ -385,6 +440,7 @@ class TherapyReportService
 
         $enhanced = $this->enhanceSessionContent($session);
         $facility = $this->getFacilityData();
+        $signatureService = new SignatureService;
 
         $phpWord = new PhpWord;
         $phpWord->setDefaultFontName('Arial');
@@ -503,16 +559,36 @@ class TherapyReportService
         $therapistTitle = $session->therapist->staffProfile?->position ?? 'BHT';
         $supervisorTitle = $session->supervisor?->staffProfile?->position ?? 'BHP';
 
-        $sigTable->addRow(600);
-        $sigTable->addCell(3200)->addText("Name of BHT, Title:\n{$session->therapist->name}, {$therapistTitle}.", $boldFont);
-        $sigTable->addCell(3600)->addText('Signature, Credentials', $boldFont);
-        $sigTable->addCell(2400)->addText("Date of Completion\n".$session->updated_at->format('m/d/Y'), $boldFont);
+        $therapistSigFile = $signatureService->getSignatureTempFile($session->therapist);
+        $supervisorSigFile = $signatureService->getSignatureTempFile($session->supervisor);
 
-        $sigTable->addRow(600);
-        $supervisorName = $session->supervisor ? "{$session->supervisor->name}, {$supervisorTitle}" : '';
-        $sigTable->addCell(3200)->addText('Name of BHP, Title: '.$supervisorName, $boldFont);
-        $sigTable->addCell(3600)->addText('Signature, Credentials', $boldFont);
-        $sigTable->addCell(2400)->addText("Date of Completion\n".($session->supervisor_signed_at?->format('m/d/Y') ?? ''), $boldFont);
+        try {
+            $sigTable->addRow(600);
+            $sigTable->addCell(3200)->addText("Name of BHT, Title:\n{$session->therapist->name}, {$therapistTitle}.", $boldFont);
+            $sigCell = $sigTable->addCell(3600);
+            $sigCell->addText('Signature, Credentials', $boldFont);
+            if ($therapistSigFile) {
+                $sigCell->addImage($therapistSigFile, ['width' => 140, 'height' => 35]);
+            }
+            $sigTable->addCell(2400)->addText("Date of Completion\n".$session->updated_at->format('m/d/Y'), $boldFont);
+
+            $sigTable->addRow(600);
+            $supervisorName = $session->supervisor ? "{$session->supervisor->name}, {$supervisorTitle}" : '';
+            $sigTable->addCell(3200)->addText('Name of BHP, Title: '.$supervisorName, $boldFont);
+            $supSigCell = $sigTable->addCell(3600);
+            $supSigCell->addText('Signature, Credentials', $boldFont);
+            if ($supervisorSigFile) {
+                $supSigCell->addImage($supervisorSigFile, ['width' => 140, 'height' => 35]);
+            }
+            $sigTable->addCell(2400)->addText("Date of Completion\n".($session->supervisor_signed_at?->format('m/d/Y') ?? ''), $boldFont);
+        } finally {
+            if ($therapistSigFile && file_exists($therapistSigFile)) {
+                @unlink($therapistSigFile);
+            }
+            if ($supervisorSigFile && file_exists($supervisorSigFile)) {
+                @unlink($supervisorSigFile);
+            }
+        }
 
         $tempFile = tempnam(sys_get_temp_dir(), 'therapy_').'.docx';
         $writer = IOFactory::createWriter($phpWord, 'Word2007');
@@ -598,6 +674,25 @@ class TherapyReportService
                 $session->progress_notes ? substr($session->progress_notes, 0, 150).'...' : '-',
                 $normalFont
             );
+        }
+
+        // Signature block
+        $signerSigFile = (new SignatureService)->getSignatureTempFile(auth()->user());
+        try {
+            $section->addTextBreak();
+            $sigTable = $section->addTable($borderStyle);
+            $sigTable->addRow();
+            $sigTable->addCell(4600)->addText('Prepared by: '.(auth()->user()->name ?? 'System').(!empty(auth()->user()?->staffProfile?->position) ? ', '.auth()->user()->staffProfile->position : ''), $boldFont);
+            $sigCell = $sigTable->addCell(2300);
+            $sigCell->addText('Signature:', $boldFont);
+            if ($signerSigFile) {
+                $sigCell->addImage($signerSigFile, ['width' => 140, 'height' => 35]);
+            }
+            $sigTable->addCell(2300)->addText('Date: '.now()->format('m/d/Y'), $boldFont);
+        } finally {
+            if ($signerSigFile && file_exists($signerSigFile)) {
+                @unlink($signerSigFile);
+            }
         }
 
         $section->addTextBreak();

@@ -96,7 +96,7 @@ class extends Component {
                         $totalSessions = $this->getTotalSessions($therapist->id);
                         $completedThisMonth = $this->getCompletedThisMonth($therapist->id);
                     @endphp
-                    <flux:card>
+                    <flux:card class="hover:shadow-md transition-shadow">
                         <div class="flex items-start gap-4">
                             <flux:avatar size="lg" :name="$therapist->name" />
                             <div class="flex-1 min-w-0">
@@ -107,17 +107,17 @@ class extends Component {
 
                         <flux:separator class="my-4" />
 
-                        <div class="grid grid-cols-3 gap-4 text-center text-sm">
-                            <div>
-                                <div class="text-2xl font-bold theme-accent-text">{{ $activeAssignments }}</div>
-                                <div class="text-xs text-zinc-500 dark:text-zinc-400">{{ __('Residents') }}</div>
+                        <div class="grid grid-cols-3 gap-3 text-center text-sm">
+                            <div class="bg-blue-50 dark:bg-blue-900/30 rounded-lg p-2">
+                                <div class="text-2xl font-bold text-blue-700 dark:text-blue-400">{{ $activeAssignments }}</div>
+                                <div class="text-xs text-blue-600 dark:text-blue-500">{{ __('Residents') }}</div>
                             </div>
-                            <div>
-                                <div class="text-2xl font-bold text-green-600 dark:text-green-400">{{ $completedThisMonth }}</div>
-                                <div class="text-xs text-zinc-500 dark:text-zinc-400">{{ __('This Month') }}</div>
+                            <div class="bg-green-50 dark:bg-green-900/30 rounded-lg p-2">
+                                <div class="text-2xl font-bold text-green-700 dark:text-green-400">{{ $completedThisMonth }}</div>
+                                <div class="text-xs text-green-600 dark:text-green-500">{{ __('This Month') }}</div>
                             </div>
-                            <div>
-                                <div class="text-2xl font-bold text-zinc-600 dark:text-zinc-400">{{ $totalSessions }}</div>
+                            <div class="bg-zinc-100 dark:bg-zinc-800 rounded-lg p-2">
+                                <div class="text-2xl font-bold text-zinc-700 dark:text-zinc-400">{{ $totalSessions }}</div>
                                 <div class="text-xs text-zinc-500 dark:text-zinc-400">{{ __('Total') }}</div>
                             </div>
                         </div>

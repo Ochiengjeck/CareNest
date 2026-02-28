@@ -95,30 +95,22 @@ class extends Component {
 
         {{-- Stats --}}
         <div class="grid gap-4 sm:grid-cols-4">
-            <flux:card>
-                <div class="text-center">
-                    <div class="text-3xl font-bold theme-accent-text">{{ $this->stats['active_residents'] }}</div>
-                    <div class="text-sm text-zinc-500 dark:text-zinc-400">{{ __('Active Residents') }}</div>
-                </div>
-            </flux:card>
-            <flux:card>
-                <div class="text-center">
-                    <div class="text-3xl font-bold text-green-600 dark:text-green-400">{{ $this->stats['this_month'] }}</div>
-                    <div class="text-sm text-zinc-500 dark:text-zinc-400">{{ __('Sessions This Month') }}</div>
-                </div>
-            </flux:card>
-            <flux:card>
-                <div class="text-center">
-                    <div class="text-3xl font-bold text-purple-600 dark:text-purple-400">{{ $this->stats['completed_sessions'] }}</div>
-                    <div class="text-sm text-zinc-500 dark:text-zinc-400">{{ __('Completed Sessions') }}</div>
-                </div>
-            </flux:card>
-            <flux:card>
-                <div class="text-center">
-                    <div class="text-3xl font-bold text-zinc-600 dark:text-zinc-400">{{ $this->stats['total_sessions'] }}</div>
-                    <div class="text-sm text-zinc-500 dark:text-zinc-400">{{ __('Total Sessions') }}</div>
-                </div>
-            </flux:card>
+            <div class="p-4 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 text-center">
+                <div class="text-3xl font-bold text-blue-700 dark:text-blue-400">{{ $this->stats['active_residents'] }}</div>
+                <div class="text-sm text-blue-600 dark:text-blue-500">{{ __('Active Residents') }}</div>
+            </div>
+            <div class="p-4 rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 text-center">
+                <div class="text-3xl font-bold text-green-700 dark:text-green-400">{{ $this->stats['this_month'] }}</div>
+                <div class="text-sm text-green-600 dark:text-green-500">{{ __('Sessions This Month') }}</div>
+            </div>
+            <div class="p-4 rounded-lg bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 text-center">
+                <div class="text-3xl font-bold text-purple-700 dark:text-purple-400">{{ $this->stats['completed_sessions'] }}</div>
+                <div class="text-sm text-purple-600 dark:text-purple-500">{{ __('Completed Sessions') }}</div>
+            </div>
+            <div class="p-4 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 text-center">
+                <div class="text-3xl font-bold text-amber-700 dark:text-amber-400">{{ $this->stats['total_sessions'] }}</div>
+                <div class="text-sm text-amber-600 dark:text-amber-500">{{ __('Total Sessions') }}</div>
+            </div>
         </div>
 
         <div class="grid gap-6 lg:grid-cols-2">
@@ -139,7 +131,8 @@ class extends Component {
                 @else
                     <div class="space-y-3">
                         @foreach($this->assignments->take(5) as $assignment)
-                            <div class="flex items-center justify-between rounded-lg border border-zinc-200 dark:border-zinc-700 p-3">
+                            <a href="{{ route('residents.show', $assignment->resident) }}" wire:navigate
+                               class="flex items-center justify-between rounded-lg bg-zinc-50 dark:bg-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-700 p-3 transition">
                                 <div class="flex items-center gap-3">
                                     <flux:avatar size="sm" :name="$assignment->resident->full_name" />
                                     <div>
@@ -150,7 +143,7 @@ class extends Component {
                                     </div>
                                 </div>
                                 <flux:badge size="sm" :color="$assignment->status_color">{{ $assignment->status_label }}</flux:badge>
-                            </div>
+                            </a>
                         @endforeach
                     </div>
                 @endif
@@ -173,7 +166,8 @@ class extends Component {
                 @else
                     <div class="space-y-3">
                         @foreach($this->recentSessions as $session)
-                            <div class="flex items-center justify-between rounded-lg border border-zinc-200 dark:border-zinc-700 p-3">
+                            <a href="{{ route('therapy.sessions.show', $session) }}" wire:navigate
+                               class="flex items-center justify-between rounded-lg bg-zinc-50 dark:bg-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-700 p-3 transition">
                                 <div>
                                     <div class="font-medium">{{ $session->resident->full_name }}</div>
                                     <div class="text-xs text-zinc-500 dark:text-zinc-400">
@@ -181,7 +175,7 @@ class extends Component {
                                     </div>
                                 </div>
                                 <flux:badge size="sm" :color="$session->status_color">{{ $session->status_label }}</flux:badge>
-                            </div>
+                            </a>
                         @endforeach
                     </div>
                 @endif

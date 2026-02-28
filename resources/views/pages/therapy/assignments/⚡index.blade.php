@@ -87,34 +87,36 @@ class extends Component {
         </div>
 
         {{-- Filters --}}
-        <div class="flex flex-col gap-4 sm:flex-row sm:items-center">
-            <flux:input
-                wire:model.live.debounce.300ms="search"
-                placeholder="Search resident..."
-                icon="magnifying-glass"
-                class="sm:max-w-xs"
-            />
+        <flux:card class="!p-4">
+            <div class="flex flex-col gap-4 sm:flex-row sm:items-center">
+                <flux:input
+                    wire:model.live.debounce.300ms="search"
+                    placeholder="Search resident..."
+                    icon="magnifying-glass"
+                    class="sm:max-w-xs"
+                />
 
-            <flux:select wire:model.live="therapistFilter" class="sm:max-w-xs">
-                <flux:select.option value="">{{ __('All Therapists') }}</flux:select.option>
-                @foreach($this->therapists as $id => $name)
-                    <flux:select.option value="{{ $id }}">{{ $name }}</flux:select.option>
-                @endforeach
-            </flux:select>
+                <flux:select wire:model.live="therapistFilter" class="sm:max-w-xs">
+                    <flux:select.option value="">{{ __('All Therapists') }}</flux:select.option>
+                    @foreach($this->therapists as $id => $name)
+                        <flux:select.option value="{{ $id }}">{{ $name }}</flux:select.option>
+                    @endforeach
+                </flux:select>
 
-            <flux:select wire:model.live="statusFilter" class="sm:max-w-xs">
-                <flux:select.option value="">{{ __('All Statuses') }}</flux:select.option>
-                <flux:select.option value="active">{{ __('Active') }}</flux:select.option>
-                <flux:select.option value="inactive">{{ __('Inactive') }}</flux:select.option>
-                <flux:select.option value="completed">{{ __('Completed') }}</flux:select.option>
-            </flux:select>
+                <flux:select wire:model.live="statusFilter" class="sm:max-w-xs">
+                    <flux:select.option value="">{{ __('All Statuses') }}</flux:select.option>
+                    <flux:select.option value="active">{{ __('Active') }}</flux:select.option>
+                    <flux:select.option value="inactive">{{ __('Inactive') }}</flux:select.option>
+                    <flux:select.option value="completed">{{ __('Completed') }}</flux:select.option>
+                </flux:select>
 
-            @if($this->hasActiveFilters())
-                <flux:button variant="ghost" wire:click="clearFilters" icon="x-mark">
-                    {{ __('Clear') }}
-                </flux:button>
-            @endif
-        </div>
+                @if($this->hasActiveFilters())
+                    <flux:button variant="ghost" wire:click="clearFilters" icon="x-mark">
+                        {{ __('Clear') }}
+                    </flux:button>
+                @endif
+            </div>
+        </flux:card>
 
         {{-- Assignments Table --}}
         <flux:table>

@@ -139,7 +139,12 @@ class extends Component {
         <form wire:submit="save" class="space-y-6">
             {{-- Session Details --}}
             <flux:card>
-                <flux:heading size="sm" class="mb-4">{{ __('Session Details') }}</flux:heading>
+                <div class="flex items-center gap-3 mb-4">
+                    <div class="flex items-center justify-center size-8 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-500 text-white">
+                        <flux:icon.calendar class="size-4" />
+                    </div>
+                    <flux:heading size="sm">{{ __('Session Details') }}</flux:heading>
+                </div>
 
                 <div class="grid gap-4 sm:grid-cols-2">
                     @can('manage-therapy')
@@ -214,7 +219,12 @@ class extends Component {
 
             {{-- Notes --}}
             <flux:card>
-                <flux:heading size="sm" class="mb-4">{{ __('Notes') }}</flux:heading>
+                <div class="flex items-center gap-3 mb-4">
+                    <div class="flex items-center justify-center size-8 rounded-lg bg-gradient-to-br from-amber-500 to-orange-500 text-white">
+                        <flux:icon.document-text class="size-4" />
+                    </div>
+                    <flux:heading size="sm">{{ __('Notes') }}</flux:heading>
+                </div>
 
                 <flux:textarea
                     wire:model="notes"

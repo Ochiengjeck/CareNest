@@ -166,7 +166,10 @@
                 {{ $therapist->name }}, {{ $therapist_title }}.
             </td>
             <td style="width: 38%;">
-                <strong>Signature, Credentials</strong>
+                <strong>Signature, Credentials</strong><br>
+                @if(!empty($therapist_signature))
+                    <img src="{{ $therapist_signature }}" style="max-height: 40px; max-width: 180px;" />
+                @endif
             </td>
             <td style="width: 26%;">
                 <strong>Date of Completion</strong><br>
@@ -181,7 +184,10 @@
                 @endif
             </td>
             <td>
-                <strong>Signature, Credentials</strong>
+                <strong>Signature, Credentials</strong><br>
+                @if(!empty($supervisor_signature))
+                    <img src="{{ $supervisor_signature }}" style="max-height: 40px; max-width: 180px;" />
+                @endif
             </td>
             <td>
                 <strong>Date of Completion</strong>

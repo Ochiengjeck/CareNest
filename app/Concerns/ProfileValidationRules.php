@@ -47,4 +47,25 @@ trait ProfileValidationRules
                 : Rule::unique(User::class)->ignore($userId),
         ];
     }
+
+    protected function signatureRules(): array
+    {
+        return [
+            'required',
+            'string',
+            'regex:/^data:image\/(png|jpeg|jpg);base64,[A-Za-z0-9+\/=]+$/',
+            'max:95000', // ~70KB base64 encoded
+        ];
+    }
+
+    protected function signatureUploadRules(): array
+    {
+        return [
+            'required',
+            'image',
+            'mimes:png,jpg,jpeg',
+            'max:512', // 512KB
+            'dimensions:max_width=800,max_height=400',
+        ];
+    }
 }

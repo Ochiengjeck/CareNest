@@ -115,7 +115,7 @@ class extends Component {
                         $sessionCount = $this->getSessionCount($assignment->resident_id);
                         $lastSession = $this->getLastSession($assignment->resident_id);
                     @endphp
-                    <flux:card class="relative">
+                    <flux:card class="relative hover:shadow-md transition-shadow">
                         <div class="absolute top-4 right-4">
                             <flux:badge size="sm" :color="$assignment->status_color">
                                 {{ $assignment->status_label }}
@@ -142,11 +142,11 @@ class extends Component {
                         <div class="grid grid-cols-2 gap-4 text-sm">
                             <div>
                                 <div class="text-zinc-500 dark:text-zinc-400">{{ __('Sessions') }}</div>
-                                <div class="font-medium">{{ $sessionCount }}</div>
+                                <div class="font-medium text-blue-600 dark:text-blue-400">{{ $sessionCount }}</div>
                             </div>
                             <div>
                                 <div class="text-zinc-500 dark:text-zinc-400">{{ __('Last Session') }}</div>
-                                <div class="font-medium">
+                                <div class="font-medium text-green-600 dark:text-green-400">
                                     {{ $lastSession ? $lastSession->session_date->diffForHumans() : __('Never') }}
                                 </div>
                             </div>
@@ -161,7 +161,8 @@ class extends Component {
                         </div>
 
                         @if($assignment->notes)
-                            <div class="mt-4 text-sm text-zinc-600 dark:text-zinc-400 bg-zinc-50 dark:bg-zinc-800 rounded p-2">
+                            <div class="mt-4 text-sm text-zinc-600 dark:text-zinc-400 bg-zinc-50 dark:bg-zinc-800 rounded p-2 flex items-start gap-1.5">
+                                <flux:icon.chat-bubble-left class="size-3.5 mt-0.5 shrink-0 text-zinc-400" />
                                 {{ Str::limit($assignment->notes, 100) }}
                             </div>
                         @endif
