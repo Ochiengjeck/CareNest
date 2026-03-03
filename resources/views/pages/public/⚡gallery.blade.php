@@ -10,8 +10,6 @@ new
 #[Layout('layouts.public')]
 #[Title('Gallery')]
 class extends Component {
-    public string $activeFilter = 'all';
-
     #[Computed]
     public function galleryImages()
     {
@@ -29,11 +27,6 @@ class extends Component {
             'gardens' => 'Gardens',
         ];
     }
-
-    public function setFilter(string $filter): void
-    {
-        $this->activeFilter = $filter;
-    }
 };
 
 ?>
@@ -48,19 +41,18 @@ class extends Component {
     />
 
     {{-- Gallery Section --}}
-    <section class="py-20 lg:py-28">
+    <section class="py-20 lg:py-28" x-data="{ filter: 'all' }">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             {{-- Filter Tabs --}}
             <div class="flex flex-wrap justify-center gap-2 mb-12">
                 @foreach($this->categories as $key => $label)
                     <button
-                        wire:click="setFilter('{{ $key }}')"
                         type="button"
-                        class="px-5 py-2.5 rounded-full text-sm font-medium transition-colors
-                            {{ $activeFilter === $key
-                                ? 'bg-accent text-white'
-                                : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700'
-                            }}"
+                        @click="filter = '{{ $key }}'"
+                        :class="filter === '{{ $key }}'
+                            ? 'bg-accent text-white'
+                            : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700'"
+                        class="px-5 py-2.5 rounded-full text-sm font-medium transition-colors"
                     >
                         {{ $label }}
                     </button>
@@ -71,7 +63,8 @@ class extends Component {
             <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                 @forelse($this->galleryImages as $image)
                     <div
-                        class="{{ $activeFilter !== 'all' && $activeFilter !== $image->category ? 'hidden' : '' }}"
+                        x-show="filter === 'all' || filter === '{{ $image->category }}'"
+                        x-transition
                         wire:key="gallery-{{ $image->id }}"
                     >
                         <div class="group relative cursor-pointer">
@@ -107,7 +100,8 @@ class extends Component {
 
                     @foreach($placeholderItems as $index => $item)
                         <div
-                            class="{{ $activeFilter !== 'all' && $activeFilter !== $item['category'] ? 'hidden' : '' }}"
+                            x-show="filter === 'all' || filter === '{{ $item['category'] }}'"
+                            x-transition
                             wire:key="gallery-placeholder-{{ $index }}"
                         >
                             <div class="group relative cursor-pointer">

@@ -1,5 +1,3 @@
-<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.8/dist/cdn.min.js"></script>
-
 <style>
     .pcb-root { position: fixed; bottom: 1.5rem; right: 1.5rem; z-index: 9999; font-family: ui-sans-serif, system-ui, sans-serif; }
     .pcb-btn { display: flex; align-items: center; justify-content: center; width: 3.5rem; height: 3.5rem; border-radius: 9999px; background: #2563eb; color: #fff; border: none; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.15); transition: all 0.2s; }

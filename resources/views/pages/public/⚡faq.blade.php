@@ -10,8 +10,6 @@ new
 #[Layout('layouts.public')]
 #[Title('FAQ')]
 class extends Component {
-    public string $activeCategory = 'all';
-
     #[Computed]
     public function faqItems()
     {
@@ -30,11 +28,6 @@ class extends Component {
             'costs' => 'Costs & Payment',
         ];
     }
-
-    public function setCategory(string $category): void
-    {
-        $this->activeCategory = $category;
-    }
 };
 
 ?>
@@ -49,19 +42,18 @@ class extends Component {
     />
 
     {{-- FAQ Section --}}
-    <section class="py-20 lg:py-28">
+    <section class="py-20 lg:py-28" x-data="{ filter: 'all' }">
         <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
             {{-- Category Tabs --}}
             <div class="flex flex-wrap justify-center gap-2 mb-12">
                 @foreach($this->categories as $key => $label)
                     <button
-                        wire:click="setCategory('{{ $key }}')"
                         type="button"
-                        class="px-5 py-2.5 rounded-full text-sm font-medium transition-colors
-                            {{ $activeCategory === $key
-                                ? 'bg-accent text-white'
-                                : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700'
-                            }}"
+                        @click="filter = '{{ $key }}'"
+                        :class="filter === '{{ $key }}'
+                            ? 'bg-accent text-white'
+                            : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700'"
+                        class="px-5 py-2.5 rounded-full text-sm font-medium transition-colors"
                     >
                         {{ $label }}
                     </button>
@@ -71,7 +63,11 @@ class extends Component {
             {{-- FAQ Items --}}
             <div class="space-y-4">
                 @forelse($this->faqItems as $faq)
-                    <div class="{{ $activeCategory !== 'all' && $activeCategory !== $faq->category ? 'hidden' : '' }}" wire:key="faq-{{ $faq->id }}">
+                    <div
+                        x-show="filter === 'all' || filter === '{{ $faq->category }}'"
+                        x-transition
+                        wire:key="faq-{{ $faq->id }}"
+                    >
                         <x-public.faq-item
                             :question="$faq->question"
                             :answer="$faq->answer"
@@ -90,7 +86,11 @@ class extends Component {
                         ];
                     @endphp
                     @foreach($placeholderFaqs as $index => $faq)
-                        <div class="{{ $activeCategory !== 'all' && $activeCategory !== $faq['category'] ? 'hidden' : '' }}" wire:key="faq-placeholder-{{ $index }}">
+                        <div
+                            x-show="filter === 'all' || filter === '{{ $faq['category'] }}'"
+                            x-transition
+                            wire:key="faq-placeholder-{{ $index }}"
+                        >
                             <x-public.faq-item
                                 :question="$faq['question']"
                                 :answer="$faq['answer']"
