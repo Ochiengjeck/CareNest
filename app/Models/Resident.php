@@ -23,6 +23,7 @@ class Resident extends Model
         'phone',
         'email',
         'admission_date',
+        'ahcccs_id',
         'discharge_date',
         'room_number',
         'bed_number',

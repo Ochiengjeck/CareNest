@@ -27,6 +27,7 @@ class extends Component {
 
     // Admission
     public string $admission_date = '';
+    public string $ahcccs_id = '';
     public string $room_number = '';
     public string $bed_number = '';
     public string $status = 'active';
@@ -212,6 +213,7 @@ class extends Component {
                     <flux:separator />
                     <div class="grid gap-4 sm:grid-cols-2">
                         <flux:input wire:model="admission_date" :label="__('Admission Date')" type="date" required />
+                        <flux:input wire:model="ahcccs_id" :label="__('AHCCCS ID')" :placeholder="__('Optional')" />
                         <flux:select wire:model="status" :label="__('Status')" required>
                             <flux:select.option value="active">{{ __('Active') }}</flux:select.option>
                             <flux:select.option value="discharged">{{ __('Discharged') }}</flux:select.option>

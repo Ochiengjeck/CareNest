@@ -48,6 +48,16 @@ trait ProfileValidationRules
         ];
     }
 
+    protected function signatureNameRules(): array
+    {
+        return ['required', 'string', 'max:100'];
+    }
+
+    protected function signaturePenColorRules(): array
+    {
+        return ['required', 'string', 'regex:/^#[0-9A-Fa-f]{6}$/'];
+    }
+
     protected function signatureRules(): array
     {
         return [

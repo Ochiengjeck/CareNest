@@ -6,6 +6,7 @@ use Illuminate\Support\Facades\Route;
 Route::middleware(['auth', 'verified', 'can:view-staff'])->group(function () {
     Route::livewire('staff', 'pages::staff.index')->name('staff.index');
     Route::livewire('staff/{user}', 'pages::staff.show')->name('staff.show');
+    Route::livewire('staff/{user}/documents', 'pages::staff.documents')->name('staff.documents');
 
     Route::middleware('can:manage-staff')->group(function () {
         Route::livewire('staff/{user}/edit', 'pages::staff.edit')->name('staff.edit');

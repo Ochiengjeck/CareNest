@@ -66,11 +66,16 @@ class extends Component {
                 </div>
             </div>
 
-            @can('manage-staff')
-                <flux:button :href="route('staff.edit', $this->member)" wire:navigate icon="pencil">
-                    {{ __('Edit Profile') }}
+            <div class="flex gap-2">
+                <flux:button :href="route('staff.documents', $this->member)" wire:navigate icon="folder-open" variant="filled">
+                    {{ __('Documents') }}
                 </flux:button>
-            @endcan
+                @can('manage-staff')
+                    <flux:button :href="route('staff.edit', $this->member)" wire:navigate icon="pencil">
+                        {{ __('Edit Profile') }}
+                    </flux:button>
+                @endcan
+            </div>
         </div>
 
         @if (session('status'))

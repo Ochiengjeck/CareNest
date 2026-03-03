@@ -103,6 +103,11 @@ class User extends Authenticatable
         return $this->hasMany(Shift::class);
     }
 
+    public function staffDocuments(): HasMany
+    {
+        return $this->hasMany(StaffDocument::class);
+    }
+
     // Therapy relationships
 
     public function therapistAssignments(): HasMany
@@ -120,27 +125,37 @@ class User extends Authenticatable
         return $this->hasMany(TherapistAssignment::class, 'therapist_id')->where('status', 'active');
     }
 
-    // Signature methods
+    // Signature relationships and methods
+
+    public function signatures(): HasMany
+    {
+        return $this->hasMany(Signature::class);
+    }
 
     public function hasSignature(): bool
     {
-        return $this->signature_data !== null;
+        return $this->signatures()->exists() || $this->signature_data !== null;
     }
 
     public function getSignatureDataUri(): ?string
     {
+        // Prefer the active signature from the new signatures table
+        $active = $this->signatures()->active()->first();
+        if ($active) {
+            return $active->getDataUri();
+        }
+
+        // Fall back to legacy signature_data column
         if (! $this->signature_data) {
             return null;
         }
 
         $data = $this->signature_data;
 
-        // Already a data URI
         if (str_starts_with($data, 'data:image/')) {
             return $data;
         }
 
-        // Raw base64
         return 'data:image/png;base64,'.$data;
     }
 

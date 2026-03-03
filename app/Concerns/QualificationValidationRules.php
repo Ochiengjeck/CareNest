@@ -14,6 +14,7 @@ trait QualificationValidationRules
             'expiry_date' => ['nullable', 'date', 'after_or_equal:issue_date'],
             'status' => ['required', 'string', 'in:active,expired,pending_renewal'],
             'notes' => ['nullable', 'string', 'max:10000'],
+            'qualificationDocument' => ['nullable', 'file', 'mimes:pdf,doc,docx,jpg,jpeg,png', 'max:10240'],
         ];
     }
 }

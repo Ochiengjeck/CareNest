@@ -1,11 +1,12 @@
 <?php
 
 use App\Concerns\ProfileValidationRules;
+use App\Models\Signature;
 use App\Models\User;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Session;
-use Illuminate\Validation\Rule;
+use Illuminate\Support\Facades\Validator;
 use Livewire\Attributes\Computed;
 use Livewire\Component;
 use Livewire\WithFileUploads;
@@ -15,12 +16,14 @@ new class extends Component {
 
     public string $name = '';
     public string $email = '';
-    public string $signatureMode = 'draw';
-    public $signatureUpload;
 
-    /**
-     * Mount the component.
-     */
+    // Signature creation modal
+    public bool $showSignatureModal = false;
+    public string $newSigName = '';
+    public string $newSigPenColor = '#000000';
+    public string $newSigMode = 'draw';
+    public $newSigUpload;
+
     public function mount(): void
     {
         $this->name = Auth::user()->name;
@@ -48,59 +51,152 @@ new class extends Component {
     }
 
     /**
-     * Receive signature data from the canvas JS component.
+     * Open the signature creation modal.
      */
-    public function receiveSignature(string $dataUrl): void
+    public function openSignatureModal(): void
     {
-        $this->validate(
-            ['dataUrl' => $this->signatureRules()],
+        $this->showSignatureModal = true;
+    }
+
+    /**
+     * Close the signature creation modal and reset its state.
+     */
+    public function closeSignatureModal(): void
+    {
+        $this->showSignatureModal = false;
+        $this->reset(['newSigName', 'newSigPenColor', 'newSigMode', 'newSigUpload']);
+        $this->newSigPenColor = '#000000';
+    }
+
+    /**
+     * Save a drawn signature from the canvas.
+     * $penColor is passed directly from Alpine to avoid wire:ignore sync issues.
+     */
+    public function saveDrawnSignature(string $dataUrl, string $penColor = '#000000'): void
+    {
+        $this->newSigPenColor = $penColor;
+
+        // Validate Livewire properties normally
+        $this->validate([
+            'newSigName'     => $this->signatureNameRules(),
+            'newSigPenColor' => $this->signaturePenColorRules(),
+        ], [], [
+            'newSigName'     => 'signature name',
+            'newSigPenColor' => 'pen color',
+        ]);
+
+        // dataUrl is a method argument, not a Livewire property — use Validator directly
+        Validator::make(
+            ['signature' => $dataUrl],
+            ['signature' => $this->signatureRules()],
             [],
-            ['dataUrl' => 'signature'],
-        );
+            ['signature' => 'signature drawing'],
+        )->validate();
 
         $user = Auth::user();
-        $user->signature_data = $dataUrl;
-        $user->signature_updated_at = now();
-        $user->save();
+        $isFirst = ! $user->signatures()->exists();
 
+        $user->signatures()->create([
+            'name' => $this->newSigName,
+            'pen_color' => $this->newSigPenColor,
+            'signature_data' => $dataUrl,
+            'is_active' => $isFirst,
+        ]);
+
+        $this->closeSignatureModal();
+        unset($this->signatures);
         $this->dispatch('signature-saved');
     }
 
     /**
-     * Upload a signature image file and convert to base64.
+     * Save an uploaded signature image.
      */
-    public function uploadSignature(): void
+    public function saveUploadedSignature(): void
     {
-        $this->validate(
-            ['signatureUpload' => $this->signatureUploadRules()],
-            [],
-            ['signatureUpload' => 'signature image'],
-        );
+        $this->validate([
+            'newSigName' => $this->signatureNameRules(),
+            'newSigUpload' => $this->signatureUploadRules(),
+        ], [], [
+            'newSigName' => 'signature name',
+            'newSigUpload' => 'signature image',
+        ]);
 
-        $contents = file_get_contents($this->signatureUpload->getRealPath());
-        $mime = $this->signatureUpload->getMimeType();
+        $contents = file_get_contents($this->newSigUpload->getRealPath());
+        $mime = $this->newSigUpload->getMimeType();
         $dataUrl = 'data:'.$mime.';base64,'.base64_encode($contents);
 
         $user = Auth::user();
-        $user->signature_data = $dataUrl;
-        $user->signature_updated_at = now();
-        $user->save();
+        $isFirst = ! $user->signatures()->exists();
 
-        $this->signatureUpload = null;
+        $user->signatures()->create([
+            'name' => $this->newSigName,
+            'pen_color' => '#000000',
+            'signature_data' => $dataUrl,
+            'is_active' => $isFirst,
+        ]);
+
+        $this->closeSignatureModal();
+        unset($this->signatures);
         $this->dispatch('signature-saved');
     }
 
     /**
-     * Remove the user's saved signature.
+     * Set a signature as the active one (used in report exports).
      */
-    public function clearSignature(): void
+    public function activateSignature(int $id): void
     {
         $user = Auth::user();
-        $user->signature_data = null;
-        $user->signature_updated_at = now();
-        $user->save();
 
-        $this->dispatch('signature-cleared');
+        $sig = $user->signatures()->find($id);
+        if (! $sig) {
+            return;
+        }
+
+        $user->signatures()->update(['is_active' => false]);
+        $sig->update(['is_active' => true]);
+
+        unset($this->signatures);
+        $this->dispatch('signature-activated');
+    }
+
+    /**
+     * Deactivate a signature (keeps it saved but unused in exports).
+     */
+    public function deactivateSignature(int $id): void
+    {
+        $user = Auth::user();
+
+        $sig = $user->signatures()->find($id);
+        if ($sig) {
+            $sig->update(['is_active' => false]);
+            unset($this->signatures);
+            $this->dispatch('signature-deactivated');
+        }
+    }
+
+    /**
+     * Delete a signature permanently.
+     */
+    public function deleteSignature(int $id): void
+    {
+        $user = Auth::user();
+
+        $sig = $user->signatures()->find($id);
+        if (! $sig) {
+            return;
+        }
+
+        $wasActive = $sig->is_active;
+        $sig->delete();
+
+        // If it was active, promote the most recent remaining signature
+        if ($wasActive) {
+            $next = $user->signatures()->latest()->first();
+            $next?->update(['is_active' => true]);
+        }
+
+        unset($this->signatures);
+        $this->dispatch('signature-deleted');
     }
 
     /**
@@ -122,15 +218,9 @@ new class extends Component {
     }
 
     #[Computed]
-    public function hasExistingSignature(): bool
+    public function signatures()
     {
-        return Auth::user()->hasSignature();
-    }
-
-    #[Computed]
-    public function existingSignatureDataUri(): ?string
-    {
-        return Auth::user()->getSignatureDataUri();
+        return Auth::user()->signatures()->latest()->get();
     }
 
     #[Computed]
@@ -147,161 +237,341 @@ new class extends Component {
     }
 }; ?>
 
-<section class="w-full">
+<div>
     @include('partials.settings-heading')
 
-    <flux:heading class="sr-only">{{ __('Profile Settings') }}</flux:heading>
+    <div class="max-w-2xl space-y-6">
 
-    <x-pages::settings.layout :heading="__('Profile')" :subheading="__('Update your name and email address')">
-        <form wire:submit="updateProfileInformation" class="my-6 w-full space-y-6">
-            <flux:input wire:model="name" :label="__('Name')" type="text" required autofocus autocomplete="name" />
-
-            <div>
-                <flux:input wire:model="email" :label="__('Email')" type="email" required autocomplete="email" />
-
-                @if ($this->hasUnverifiedEmail)
-                    <div>
-                        <flux:text class="mt-4">
-                            {{ __('Your email address is unverified.') }}
-
-                            <flux:link class="text-sm cursor-pointer" wire:click.prevent="resendVerificationNotification">
-                                {{ __('Click here to re-send the verification email.') }}
-                            </flux:link>
-                        </flux:text>
-
-                        @if (session('status') === 'verification-link-sent')
-                            <flux:text class="mt-2 font-medium !dark:text-green-400 !text-green-600">
-                                {{ __('A new verification link has been sent to your email address.') }}
-                            </flux:text>
-                        @endif
+        {{-- Card 1: Profile Information --}}
+        <flux:card>
+            <form wire:submit="updateProfileInformation">
+                <div class="mb-5 flex items-start justify-between gap-4">
+                    <div class="flex items-center gap-3">
+                        <div class="flex size-9 items-center justify-center rounded-lg bg-blue-50 dark:bg-blue-900/20">
+                            <flux:icon.user class="size-5 text-blue-600 dark:text-blue-400" />
+                        </div>
+                        <div>
+                            <flux:heading size="lg">{{ __('Profile Information') }}</flux:heading>
+                            <flux:text size="sm" class="text-zinc-500">{{ __('Update your name and email address') }}</flux:text>
+                        </div>
                     </div>
-                @endif
-            </div>
-
-            <div class="flex items-center gap-4">
-                <div class="flex items-center justify-end">
-                    <flux:button variant="primary" type="submit" class="w-full" data-test="update-profile-button">
-                        {{ __('Save') }}
-                    </flux:button>
-                </div>
-
-                <x-action-message class="me-3" on="profile-updated">
-                    {{ __('Saved.') }}
-                </x-action-message>
-            </div>
-        </form>
-
-        {{-- Digital Signature Section --}}
-        <div class="border-t border-zinc-200 dark:border-zinc-700 pt-6 mt-6">
-            <flux:heading size="lg">{{ __('Digital Signature') }}</flux:heading>
-            <flux:text class="mt-1">{{ __('Your signature will be embedded in therapy and discharge report exports.') }}</flux:text>
-
-            {{-- Current Signature Preview --}}
-            @if ($this->hasExistingSignature)
-                <div class="mt-4 p-4 bg-zinc-50 dark:bg-zinc-800 rounded-lg border border-zinc-200 dark:border-zinc-700">
-                    <div class="flex items-center justify-between mb-2">
-                        <flux:text size="sm" class="font-medium">{{ __('Current Signature') }}</flux:text>
-                        <flux:button variant="danger" size="sm" wire:click="clearSignature" wire:confirm="Are you sure you want to remove your signature?">
-                            {{ __('Remove') }}
+                    <div class="flex shrink-0 items-center gap-3">
+                        <x-action-message class="text-sm text-green-600 dark:text-green-400" on="profile-updated">
+                            {{ __('Saved.') }}
+                        </x-action-message>
+                        <flux:button variant="primary" size="sm" type="submit" data-test="update-profile-button">
+                            {{ __('Save Changes') }}
                         </flux:button>
                     </div>
-                    <div class="bg-white rounded border border-zinc-300 p-2 inline-block">
-                        <img src="{{ $this->existingSignatureDataUri }}" alt="Your signature" style="max-height: 80px; max-width: 300px;">
+                </div>
+
+                <div class="space-y-4">
+                    <flux:input wire:model="name" :label="__('Name')" type="text" required autofocus autocomplete="name" />
+
+                    <div>
+                        <flux:input wire:model="email" :label="__('Email')" type="email" required autocomplete="email" />
+
+                        @if ($this->hasUnverifiedEmail)
+                            <div class="mt-3">
+                                <flux:text size="sm">
+                                    {{ __('Your email address is unverified.') }}
+                                    <flux:link class="cursor-pointer text-sm" wire:click.prevent="resendVerificationNotification">
+                                        {{ __('Click here to re-send the verification email.') }}
+                                    </flux:link>
+                                </flux:text>
+
+                                @if (session('status') === 'verification-link-sent')
+                                    <flux:text size="sm" class="mt-2 font-medium !text-green-600 dark:!text-green-400">
+                                        {{ __('A new verification link has been sent to your email address.') }}
+                                    </flux:text>
+                                @endif
+                            </div>
+                        @endif
                     </div>
-                    @if (Auth::user()->signature_updated_at)
-                        <flux:text size="sm" class="mt-2 text-zinc-500">
-                            {{ __('Last updated:') }} {{ Auth::user()->signature_updated_at->diffForHumans() }}
-                        </flux:text>
-                    @endif
+                </div>
+            </form>
+        </flux:card>
+
+        {{-- Card 2: Digital Signatures --}}
+        <flux:card>
+            <div class="mb-5 flex items-start justify-between gap-4">
+                <div class="flex items-center gap-3">
+                    <div class="flex size-9 items-center justify-center rounded-lg bg-violet-50 dark:bg-violet-900/20">
+                        <flux:icon.pencil-square class="size-5 text-violet-600 dark:text-violet-400" />
+                    </div>
+                    <div>
+                        <flux:heading size="lg">{{ __('Digital Signatures') }}</flux:heading>
+                        <flux:text size="sm" class="text-zinc-500">{{ __('Only the active signature is embedded in report exports.') }}</flux:text>
+                    </div>
+                </div>
+                <flux:button variant="primary" size="sm" icon="plus" wire:click="openSignatureModal" class="shrink-0">
+                    {{ __('New Signature') }}
+                </flux:button>
+            </div>
+
+            @if ($this->signatures->isEmpty())
+                <div class="rounded-lg border border-dashed border-zinc-300 p-10 text-center dark:border-zinc-600">
+                    <flux:icon.pencil-square class="mx-auto mb-3 size-10 text-zinc-400" />
+                    <flux:heading size="sm" class="text-zinc-500">{{ __('No signatures yet') }}</flux:heading>
+                    <flux:text size="sm" class="mt-1 text-zinc-400">{{ __('Create your first digital signature to use in report exports.') }}</flux:text>
+                    <flux:button variant="primary" size="sm" class="mt-4" icon="plus" wire:click="openSignatureModal">
+                        {{ __('Create Signature') }}
+                    </flux:button>
+                </div>
+            @else
+                <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                    @foreach ($this->signatures as $sig)
+                        <div class="relative flex flex-col gap-3 rounded-lg border p-4 {{ $sig->is_active ? 'border-blue-400 ring-1 ring-blue-400 dark:border-blue-500 dark:ring-blue-500' : 'border-zinc-200 dark:border-zinc-700' }} bg-white dark:bg-zinc-800">
+                            <div class="flex items-start justify-between gap-2">
+                                <div class="flex min-w-0 items-center gap-2">
+                                    <span
+                                        class="inline-block size-3 shrink-0 rounded-full border border-zinc-300"
+                                        style="background-color: {{ $sig->pen_color }}"
+                                        title="{{ __('Pen color: :color', ['color' => $sig->pen_color]) }}"
+                                    ></span>
+                                    <flux:heading size="sm" class="truncate">{{ $sig->name }}</flux:heading>
+                                </div>
+                                @if ($sig->is_active)
+                                    <flux:badge size="sm" color="blue" class="shrink-0">{{ __('Active') }}</flux:badge>
+                                @endif
+                            </div>
+
+                            <div class="flex items-center justify-center rounded border border-zinc-200 bg-zinc-50 p-2 dark:bg-white" style="min-height: 72px;">
+                                <img
+                                    src="{{ $sig->getDataUri() }}"
+                                    alt="{{ $sig->name }}"
+                                    style="max-height: 64px; max-width: 100%; object-fit: contain;"
+                                >
+                            </div>
+
+                            <flux:text size="sm" class="text-zinc-400">
+                                {{ __('Created') }} {{ $sig->created_at->diffForHumans() }}
+                            </flux:text>
+
+                            <div class="flex items-center gap-2 border-t border-zinc-100 pt-1 dark:border-zinc-700">
+                                @if (! $sig->is_active)
+                                    <flux:button
+                                        size="sm"
+                                        variant="ghost"
+                                        icon="check-circle"
+                                        wire:click="activateSignature({{ $sig->id }})"
+                                        class="flex-1"
+                                    >
+                                        {{ __('Set Active') }}
+                                    </flux:button>
+                                @else
+                                    <flux:button
+                                        size="sm"
+                                        variant="ghost"
+                                        icon="pause-circle"
+                                        wire:click="deactivateSignature({{ $sig->id }})"
+                                        class="flex-1"
+                                    >
+                                        {{ __('Deactivate') }}
+                                    </flux:button>
+                                @endif
+
+                                <flux:button
+                                    size="sm"
+                                    variant="ghost"
+                                    icon="trash"
+                                    wire:click="deleteSignature({{ $sig->id }})"
+                                    wire:confirm="{{ __('Delete this signature? This cannot be undone.') }}"
+                                    class="text-red-500 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20"
+                                />
+                            </div>
+                        </div>
+                    @endforeach
                 </div>
             @endif
+        </flux:card>
+
+        {{-- Card 3: Danger Zone --}}
+        @if ($this->showDeleteUser)
+            <flux:card class="border-red-200 dark:border-red-800">
+                <div class="mb-5 flex items-center gap-3">
+                    <div class="flex size-9 items-center justify-center rounded-lg bg-red-50 dark:bg-red-900/20">
+                        <flux:icon.exclamation-triangle class="size-5 text-red-600 dark:text-red-400" />
+                    </div>
+                    <div>
+                        <flux:heading size="lg" class="text-red-600 dark:text-red-400">{{ __('Danger Zone') }}</flux:heading>
+                        <flux:text size="sm" class="text-zinc-500">{{ __('Irreversible account actions') }}</flux:text>
+                    </div>
+                </div>
+                <livewire:pages::settings.delete-user-form />
+            </flux:card>
+        @endif
+
+    </div>
+
+    {{-- Create Signature Modal --}}
+    <flux:modal wire:model="showSignatureModal" name="create-signature" class="w-full max-w-lg">
+        <div class="space-y-5">
+            <div>
+                <flux:heading size="lg">{{ __('Create Signature') }}</flux:heading>
+                <flux:subheading>{{ __('Draw or upload your signature, then give it a name.') }}</flux:subheading>
+            </div>
+
+            {{-- Signature Name --}}
+            <flux:input
+                wire:model="newSigName"
+                :label="__('Signature Name')"
+                placeholder="{{ __('e.g. Professional Signature') }}"
+                required
+            />
+            @error('newSigName')
+                <flux:text size="sm" class="-mt-3 text-red-500">{{ $message }}</flux:text>
+            @enderror
 
             {{-- Mode Toggle --}}
-            <div class="mt-4 flex gap-2">
-                <flux:button
-                    size="sm"
-                    :variant="$signatureMode === 'draw' ? 'primary' : 'ghost'"
-                    wire:click="$set('signatureMode', 'draw')"
-                >
-                    {{ __('Draw') }}
-                </flux:button>
-                <flux:button
-                    size="sm"
-                    :variant="$signatureMode === 'upload' ? 'primary' : 'ghost'"
-                    wire:click="$set('signatureMode', 'upload')"
-                >
-                    {{ __('Upload') }}
-                </flux:button>
+            <div>
+                <flux:label>{{ __('Input Method') }}</flux:label>
+                <div class="mt-1.5 flex gap-2">
+                    <flux:button
+                        size="sm"
+                        :variant="$newSigMode === 'draw' ? 'primary' : 'ghost'"
+                        wire:click="$set('newSigMode', 'draw')"
+                        icon="pencil"
+                    >
+                        {{ __('Draw') }}
+                    </flux:button>
+                    <flux:button
+                        size="sm"
+                        :variant="$newSigMode === 'upload' ? 'primary' : 'ghost'"
+                        wire:click="$set('newSigMode', 'upload')"
+                        icon="arrow-up-tray"
+                    >
+                        {{ __('Upload') }}
+                    </flux:button>
+                </div>
             </div>
 
             {{-- Draw Mode --}}
-            @if ($signatureMode === 'draw')
+            @if ($newSigMode === 'draw')
                 <div
-                    class="mt-4"
-                    x-data="signaturePad(@js($this->hasExistingSignature ? $this->existingSignatureDataUri : null))"
+                    x-data="signatureCreator(@js($newSigPenColor))"
                     wire:ignore
                 >
-                    <div class="bg-white rounded-lg border border-zinc-300 dark:border-zinc-600" style="width: 100%; max-width: 400px;">
+                    {{-- Pen Color Picker --}}
+                    <div class="mb-3 flex items-center gap-3">
+                        <flux:label>{{ __('Pen Color') }}</flux:label>
+                        <div class="flex items-center gap-2">
+                            <input
+                                type="color"
+                                x-model="penColor"
+                                class="h-8 w-10 cursor-pointer rounded border border-zinc-300 bg-white p-0.5 dark:border-zinc-600 dark:bg-zinc-800"
+                                title="{{ __('Pick pen color') }}"
+                            >
+                            <span class="font-mono text-sm text-zinc-500" x-text="penColor"></span>
+                        </div>
+                        {{-- Preset colors --}}
+                        <div class="flex gap-1.5">
+                            @foreach (['#000000', '#1e40af', '#15803d', '#7c3aed', '#b91c1c'] as $preset)
+                                <button
+                                    type="button"
+                                    class="size-6 rounded-full border-2 border-white ring-1 ring-zinc-300 transition-shadow hover:ring-zinc-500"
+                                    style="background-color: {{ $preset }}"
+                                    x-on:click="penColor = '{{ $preset }}'"
+                                    title="{{ $preset }}"
+                                ></button>
+                            @endforeach
+                        </div>
+                    </div>
+
+                    {{-- Canvas --}}
+                    <div class="rounded-lg border-2 border-zinc-300 bg-white dark:border-zinc-600" style="width: 100%;">
                         <canvas
                             x-ref="canvas"
-                            style="width: 100%; height: 200px; cursor: crosshair; touch-action: none;"
+                            style="width: 100%; height: 200px; cursor: crosshair; touch-action: none; display: block;"
                         ></canvas>
                     </div>
-                    <div class="mt-2 flex gap-2">
-                        <flux:button size="sm" variant="ghost" x-on:click="clear()">
+                    <flux:text size="sm" class="mt-1.5 text-zinc-400">{{ __('Draw your signature in the box above.') }}</flux:text>
+
+                    {{-- Canvas Actions --}}
+                    <div class="mt-3 flex items-center justify-between">
+                        <flux:button size="sm" variant="ghost" icon="arrow-path" x-on:click="clear()">
                             {{ __('Clear') }}
                         </flux:button>
-                        <flux:button size="sm" variant="primary" x-on:click="save()" x-bind:disabled="isEmpty">
-                            {{ __('Save Signature') }}
-                        </flux:button>
+                        <div class="flex gap-2">
+                            <flux:button size="sm" variant="ghost" x-on:click="$wire.closeSignatureModal()">
+                                {{ __('Cancel') }}
+                            </flux:button>
+                            <flux:button
+                                size="sm"
+                                variant="primary"
+                                x-on:click="save()"
+                                x-bind:disabled="isEmpty || saving"
+                                x-bind:icon="saving ? 'arrow-path' : 'check'"
+                                x-bind:class="saving ? 'animate-spin-icon' : ''"
+                            >
+                                <span x-text="saving ? '{{ __('Saving…') }}' : '{{ __('Save Signature') }}'"></span>
+                            </flux:button>
+                        </div>
                     </div>
                 </div>
             @endif
 
             {{-- Upload Mode --}}
-            @if ($signatureMode === 'upload')
-                <form wire:submit="uploadSignature" class="mt-4 space-y-3">
+            @if ($newSigMode === 'upload')
+                <div class="space-y-3">
                     <div>
+                        <flux:label>{{ __('Signature Image') }}</flux:label>
                         <input
                             type="file"
-                            wire:model="signatureUpload"
+                            wire:model="newSigUpload"
                             accept="image/png,image/jpeg"
-                            class="block w-full text-sm text-zinc-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-zinc-100 file:text-zinc-700 hover:file:bg-zinc-200 dark:file:bg-zinc-700 dark:file:text-zinc-300"
+                            class="mt-1.5 block w-full text-sm text-zinc-500 file:mr-4 file:rounded file:border-0 file:bg-zinc-100 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-zinc-700 hover:file:bg-zinc-200 dark:file:bg-zinc-700 dark:file:text-zinc-300"
                         />
-                        <flux:text size="sm" class="mt-1 text-zinc-500">{{ __('PNG or JPG, max 512KB, max 800x400px') }}</flux:text>
-                        @error('signatureUpload')
+                        <flux:text size="sm" class="mt-1 text-zinc-400">{{ __('PNG or JPG · max 512 KB · max 800×400 px') }}</flux:text>
+                        @error('newSigUpload')
                             <flux:text size="sm" class="mt-1 text-red-500">{{ $message }}</flux:text>
                         @enderror
                     </div>
 
-                    @if ($signatureUpload)
-                        <div class="bg-white rounded border border-zinc-300 p-2 inline-block">
-                            <img src="{{ $signatureUpload->temporaryUrl() }}" alt="Signature preview" style="max-height: 80px; max-width: 300px;">
+                    @if ($newSigUpload)
+                        <div class="inline-block rounded border border-zinc-200 bg-white p-2">
+                            <img src="{{ $newSigUpload->temporaryUrl() }}" alt="Preview" style="max-height: 80px; max-width: 300px;">
                         </div>
                     @endif
 
-                    <div>
-                        <flux:button size="sm" variant="primary" type="submit" :disabled="!$signatureUpload">
-                            {{ __('Save Signature') }}
+                    <div class="flex justify-end gap-2">
+                        <flux:button size="sm" variant="ghost" wire:click="closeSignatureModal" wire:loading.attr="disabled">
+                            {{ __('Cancel') }}
+                        </flux:button>
+                        <flux:button
+                            size="sm"
+                            variant="primary"
+                            wire:click="saveUploadedSignature"
+                            wire:loading.attr="disabled"
+                            :disabled="! $newSigUpload"
+                        >
+                            <span wire:loading.remove wire:target="saveUploadedSignature">
+                                <flux:icon.check class="mr-1 inline-block size-4" />{{ __('Save Signature') }}
+                            </span>
+                            <span wire:loading wire:target="saveUploadedSignature">
+                                {{ __('Saving…') }}
+                            </span>
                         </flux:button>
                     </div>
-                </form>
+                </div>
             @endif
         </div>
-
-        @if ($this->showDeleteUser)
-            <livewire:pages::settings.delete-user-form />
-        @endif
-    </x-pages::settings.layout>
-</section>
+    </flux:modal>
+</div>
 
 @script
 <script>
     $wire.on('signature-saved', () => {
         Flux.toast({ text: 'Signature saved successfully.', variant: 'success' });
     });
-    $wire.on('signature-cleared', () => {
-        Flux.toast({ text: 'Signature removed.', variant: 'success' });
+    $wire.on('signature-deleted', () => {
+        Flux.toast({ text: 'Signature deleted.', variant: 'success' });
+    });
+    $wire.on('signature-activated', () => {
+        Flux.toast({ text: 'Signature set as active.', variant: 'success' });
+    });
+    $wire.on('signature-deactivated', () => {
+        Flux.toast({ text: 'Signature deactivated.', variant: 'success' });
     });
 </script>
 @endscript

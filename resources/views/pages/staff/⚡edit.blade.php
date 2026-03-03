@@ -5,17 +5,19 @@ use App\Concerns\StaffProfileValidationRules;
 use App\Models\Qualification;
 use App\Models\StaffProfile;
 use App\Models\User;
+use Illuminate\Support\Facades\Storage;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Locked;
 use Livewire\Attributes\Title;
 use Livewire\Component;
+use Livewire\WithFileUploads;
 
 new
 #[Layout('layouts.app.sidebar')]
 #[Title('Edit Staff Profile')]
 class extends Component {
-    use QualificationValidationRules, StaffProfileValidationRules;
+    use QualificationValidationRules, StaffProfileValidationRules, WithFileUploads;
 
     #[Locked]
     public int $userId;
@@ -41,6 +43,7 @@ class extends Component {
     public string $qual_expiry_date = '';
     public string $qual_status = 'active';
     public string $qual_notes = '';
+    public $qualificationDocument = null;
 
     public function mount(User $user): void
     {
@@ -112,7 +115,13 @@ class extends Component {
             'qual_expiry_date' => ['nullable', 'date', 'after_or_equal:qual_issue_date'],
             'qual_status' => $this->qualificationRules()['status'],
             'qual_notes' => $this->qualificationRules()['notes'],
+            'qualificationDocument' => $this->qualificationRules()['qualificationDocument'],
         ]);
+
+        $documentPath = null;
+        if ($this->qualificationDocument) {
+            $documentPath = $this->qualificationDocument->store('staff/qualifications/'.$this->userId, 'public');
+        }
 
         Qualification::create([
             'user_id' => $this->userId,
@@ -123,6 +132,7 @@ class extends Component {
             'expiry_date' => $validated['qual_expiry_date'] ?: null,
             'status' => $validated['qual_status'],
             'notes' => $validated['qual_notes'] ?: null,
+            'document_path' => $documentPath,
         ]);
 
         // Reset qualification form
@@ -133,8 +143,17 @@ class extends Component {
         $this->qual_expiry_date = '';
         $this->qual_status = 'active';
         $this->qual_notes = '';
+        $this->qualificationDocument = null;
 
         unset($this->qualifications);
+    }
+
+    public function downloadQualificationDocument(int $id): mixed
+    {
+        $qual = Qualification::where('id', $id)->where('user_id', $this->userId)->firstOrFail();
+        abort_unless($qual->document_path, 404);
+
+        return Storage::disk('public')->download($qual->document_path, $qual->title);
     }
 
     public function removeQualification(int $id): void
@@ -227,7 +246,7 @@ class extends Component {
                         <flux:table.column>{{ __('Type') }}</flux:table.column>
                         <flux:table.column>{{ __('Expiry') }}</flux:table.column>
                         <flux:table.column>{{ __('Status') }}</flux:table.column>
-                        <flux:table.column class="w-16"></flux:table.column>
+                        <flux:table.column class="w-24">{{ __('Actions') }}</flux:table.column>
                     </flux:table.columns>
                     <flux:table.rows>
                         @foreach($this->qualifications as $qual)
@@ -252,13 +271,24 @@ class extends Component {
                                     <flux:badge size="sm" :color="$qual->status_color">{{ $qual->status_label }}</flux:badge>
                                 </flux:table.cell>
                                 <flux:table.cell>
-                                    <flux:button
-                                        variant="ghost"
-                                        size="sm"
-                                        icon="trash"
-                                        wire:click="removeQualification({{ $qual->id }})"
-                                        wire:confirm="Are you sure you want to remove this qualification?"
-                                    />
+                                    <div class="flex items-center gap-1">
+                                        @if($qual->document_path)
+                                            <flux:button
+                                                variant="ghost"
+                                                size="sm"
+                                                icon="arrow-down-tray"
+                                                wire:click="downloadQualificationDocument({{ $qual->id }})"
+                                                title="{{ __('Download Certificate') }}"
+                                            />
+                                        @endif
+                                        <flux:button
+                                            variant="ghost"
+                                            size="sm"
+                                            icon="trash"
+                                            wire:click="removeQualification({{ $qual->id }})"
+                                            wire:confirm="Are you sure you want to remove this qualification?"
+                                        />
+                                    </div>
                                 </flux:table.cell>
                             </flux:table.row>
                         @endforeach
@@ -289,6 +319,25 @@ class extends Component {
                     <flux:input wire:model="qual_expiry_date" :label="__('Expiry Date')" type="date" />
                     <div class="sm:col-span-2">
                         <flux:textarea wire:model="qual_notes" :label="__('Notes')" rows="2" />
+                    </div>
+                    <div class="sm:col-span-2">
+                        <flux:label>{{ __('Certificate / Document') }}</flux:label>
+                        <input
+                            type="file"
+                            wire:model="qualificationDocument"
+                            accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+                            class="mt-1 block w-full text-sm text-zinc-600 dark:text-zinc-400
+                                   file:mr-3 file:rounded-md file:border-0
+                                   file:bg-zinc-100 file:px-3 file:py-1.5
+                                   file:text-sm file:font-medium
+                                   file:text-zinc-700 hover:file:bg-zinc-200
+                                   dark:file:bg-zinc-700 dark:file:text-zinc-200
+                                   dark:hover:file:bg-zinc-600"
+                        />
+                        @error('qualificationDocument')
+                            <flux:text class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</flux:text>
+                        @enderror
+                        <flux:text class="mt-1 text-xs text-zinc-400">PDF, DOC, DOCX, JPG, PNG — max 10 MB (optional)</flux:text>
                     </div>
                 </div>
                 <div class="flex justify-end">

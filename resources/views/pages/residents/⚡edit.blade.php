@@ -33,6 +33,7 @@ class extends Component {
 
     // Admission
     public string $admission_date = '';
+    public string $ahcccs_id = '';
     public ?string $discharge_date = null;
     public string $room_number = '';
     public string $bed_number = '';
@@ -73,6 +74,7 @@ class extends Component {
         $this->phone = $resident->phone ?? '';
         $this->email = $resident->email ?? '';
         $this->admission_date = $resident->admission_date->format('Y-m-d');
+        $this->ahcccs_id      = $resident->ahcccs_id ?? '';
         $this->discharge_date = $resident->discharge_date?->format('Y-m-d');
         $this->room_number = $resident->room_number ?? '';
         $this->bed_number = $resident->bed_number ?? '';
@@ -270,6 +272,7 @@ class extends Component {
                     <flux:separator />
                     <div class="grid gap-4 sm:grid-cols-2">
                         <flux:input wire:model="admission_date" :label="__('Admission Date')" type="date" required />
+                        <flux:input wire:model="ahcccs_id" :label="__('AHCCCS ID')" placeholder="e.g. 123456789" />
                         <flux:select wire:model="status" :label="__('Status')" required>
                             <flux:select.option value="active">{{ __('Active') }}</flux:select.option>
                             <flux:select.option value="discharged">{{ __('Discharged') }}</flux:select.option>

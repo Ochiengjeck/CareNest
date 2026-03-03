@@ -141,8 +141,11 @@ class extends Component {
                     </div>
                 </div>
 
-                @can('manage-residents')
-                    <div class="flex gap-2">
+                <div class="flex flex-wrap gap-2">
+                    <flux:button variant="filled" :href="route('residents.reports', $this->resident)" wire:navigate icon="document-text">
+                        {{ __('Reports') }}
+                    </flux:button>
+                    @can('manage-residents')
                         @if($this->resident->status === 'active')
                             <flux:button variant="filled" :href="route('residents.discharge', $this->resident)" wire:navigate icon="arrow-right-start-on-rectangle">
                                 {{ __('Discharge') }}
@@ -157,8 +160,8 @@ class extends Component {
                         <flux:button variant="primary" :href="route('residents.edit', $this->resident)" wire:navigate icon="pencil">
                             {{ __('Edit') }}
                         </flux:button>
-                    </div>
-                @endcan
+                    @endcan
+                </div>
             </div>
         </flux:card>
 

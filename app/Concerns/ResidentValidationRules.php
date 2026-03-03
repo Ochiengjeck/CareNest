@@ -21,6 +21,7 @@ trait ResidentValidationRules
     {
         return [
             'admission_date' => ['required', 'date'],
+            'ahcccs_id'      => ['nullable', 'string', 'max:50'],
             'room_number' => ['nullable', 'string', 'max:50'],
             'bed_number' => ['nullable', 'string', 'max:50'],
             'status' => ['required', 'string', 'in:active,discharged,deceased,on_leave'],

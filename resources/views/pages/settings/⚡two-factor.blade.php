@@ -180,26 +180,35 @@ new class extends Component {
 <section class="w-full">
     @include('partials.settings-heading')
 
-    <flux:heading class="sr-only">{{ __('Two-Factor Authentication Settings') }}</flux:heading>
-
-    <x-pages::settings.layout
-        :heading="__('Two Factor Authentication')"
-        :subheading="__('Manage your two-factor authentication settings')"
-    >
-        <div class="flex flex-col w-full mx-auto space-y-6 text-sm" wire:cloak>
-            @if ($twoFactorEnabled)
-                <div class="space-y-4">
-                    <div class="flex items-center gap-3">
-                        <flux:badge color="green">{{ __('Enabled') }}</flux:badge>
+    <div class="max-w-2xl">
+        <flux:card wire:cloak>
+            {{-- Card header with status indicator --}}
+            <div class="mb-5 flex items-center justify-between gap-4">
+                <div class="flex items-center gap-3">
+                    <div class="flex size-9 items-center justify-center rounded-lg {{ $twoFactorEnabled ? 'bg-green-50 dark:bg-green-900/20' : 'bg-zinc-100 dark:bg-zinc-800' }}">
+                        <flux:icon.shield-check class="size-5 {{ $twoFactorEnabled ? 'text-green-600 dark:text-green-400' : 'text-zinc-400 dark:text-zinc-500' }}" />
                     </div>
+                    <div>
+                        <flux:heading size="lg">{{ __('Two-Factor Authentication') }}</flux:heading>
+                        <flux:text size="sm" class="text-zinc-500">{{ __('Add an extra layer of security to your account') }}</flux:text>
+                    </div>
+                </div>
+                @if ($twoFactorEnabled)
+                    <flux:badge color="green" class="shrink-0">{{ __('Enabled') }}</flux:badge>
+                @else
+                    <flux:badge color="red" class="shrink-0">{{ __('Disabled') }}</flux:badge>
+                @endif
+            </div>
 
+            @if ($twoFactorEnabled)
+                <div class="space-y-5">
                     <flux:text>
                         {{ __('With two-factor authentication enabled, you will be prompted for a secure, random pin during login, which you can retrieve from the TOTP-supported application on your phone.') }}
                     </flux:text>
 
                     <livewire:pages::settings.two-factor.recovery-codes :$requiresConfirmation />
 
-                    <div class="flex justify-start">
+                    <div class="border-t border-zinc-100 pt-4 dark:border-zinc-800">
                         <flux:button
                             variant="danger"
                             icon="shield-exclamation"
@@ -211,11 +220,7 @@ new class extends Component {
                     </div>
                 </div>
             @else
-                <div class="space-y-4">
-                    <div class="flex items-center gap-3">
-                        <flux:badge color="red">{{ __('Disabled') }}</flux:badge>
-                    </div>
-
+                <div class="space-y-5">
                     <flux:text variant="subtle">
                         {{ __('When you enable two-factor authentication, you will be prompted for a secure pin during login. This pin can be retrieved from a TOTP-supported application on your phone.') }}
                     </flux:text>
@@ -230,8 +235,8 @@ new class extends Component {
                     </flux:button>
                 </div>
             @endif
-        </div>
-    </x-pages::settings.layout>
+        </flux:card>
+    </div>
 
     <flux:modal
         name="two-factor-setup-modal"
