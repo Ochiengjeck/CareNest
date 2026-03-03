@@ -773,24 +773,26 @@ new class extends Component {
                 {{-- Quick Stats --}}
                 <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                     @foreach($this->therapistStats as $stat)
+                        @php
+                            $statBgClass = match($stat['color']) {
+                                'accent' => 'theme-accent-bg-muted',
+                                'green' => 'bg-green-100 dark:bg-green-900/30',
+                                'purple' => 'bg-purple-100 dark:bg-purple-900/30',
+                                'amber' => 'bg-amber-100 dark:bg-amber-900/30',
+                                default => 'bg-zinc-100 dark:bg-zinc-800',
+                            };
+                            $statIconClass = match($stat['color']) {
+                                'accent' => 'h-6 w-6 theme-accent-text',
+                                'green' => 'h-6 w-6 text-green-600 dark:text-green-400',
+                                'purple' => 'h-6 w-6 text-purple-600 dark:text-purple-400',
+                                'amber' => 'h-6 w-6 text-amber-600 dark:text-amber-400',
+                                default => 'h-6 w-6 text-zinc-600 dark:text-zinc-400',
+                            };
+                        @endphp
                         <flux:card>
                             <div class="flex items-center gap-4">
-                                <div class="flex h-12 w-12 items-center justify-center rounded-lg
-                                    @if($stat['color'] === 'accent') theme-accent-bg-muted
-                                    @elseif($stat['color'] === 'green') bg-green-100 dark:bg-green-900/30
-                                    @elseif($stat['color'] === 'purple') bg-purple-100 dark:bg-purple-900/30
-                                    @elseif($stat['color'] === 'amber') bg-amber-100 dark:bg-amber-900/30
-                                    @else bg-zinc-100 dark:bg-zinc-800
-                                    @endif
-                                ">
-                                    <flux:icon :name="$stat['icon']" class="h-6 w-6
-                                        @if($stat['color'] === 'accent') theme-accent-text
-                                        @elseif($stat['color'] === 'green') text-green-600 dark:text-green-400
-                                        @elseif($stat['color'] === 'purple') text-purple-600 dark:text-purple-400
-                                        @elseif($stat['color'] === 'amber') text-amber-600 dark:text-amber-400
-                                        @else text-zinc-600 dark:text-zinc-400
-                                        @endif
-                                    " />
+                                <div class="flex h-12 w-12 items-center justify-center rounded-lg {{ $statBgClass }}">
+                                    <flux:icon :name="$stat['icon']" :class="$statIconClass" />
                                 </div>
                                 <div>
                                     <div class="text-2xl font-bold">{{ $stat['value'] }}</div>
