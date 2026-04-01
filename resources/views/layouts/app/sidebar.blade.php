@@ -19,22 +19,6 @@
                 <flux:sidebar.collapse />
             </flux:sidebar.header>
 
-            {{-- User profile strip --}}
-            <div class="cn-sidebar-profile px-3 pb-2 pt-1">
-                <div class="flex items-center gap-2.5">
-                    <flux:avatar
-                        :name="auth()->user()->name"
-                        :initials="auth()->user()->initials()"
-                        class="size-8 shrink-0"
-                    />
-                    <div class="cn-sidebar-profile-text min-w-0 flex-1">
-                        <p class="truncate text-xs font-semibold text-slate-800 dark:text-zinc-100">{{ auth()->user()->name }}</p>
-                        <p class="truncate text-[10px] text-slate-400 dark:text-zinc-500">
-                            {{ implode(', ', array_map(fn($r) => str_replace('_', ' ', ucwords($r, '_')), auth()->user()->getRoleNames()->toArray())) }}
-                        </p>
-                    </div>
-                </div>
-            </div>
 
             <flux:sidebar.nav>
 

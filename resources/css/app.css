@@ -262,13 +262,17 @@ html.dark .cn-sidebar-footer { border-top-color: rgba(255,255,255,0.07) !importa
 }
 
 /* ── Smaller sidebar text + tighter items ── */
-.cn-clean-sidebar [data-flux-sidebar-item] {
-    font-size: 0.72rem !important;
+.cn-clean-sidebar [data-flux-sidebar-item] [data-content],
+.cn-clean-sidebar [data-flux-sidebar-group] > button [data-content],
+.cn-clean-sidebar [data-flux-sidebar-group] > ui-disclosure > button [data-content] {
+    font-size: 0.65rem !important;
     line-height: 1.25 !important;
 }
-.cn-clean-sidebar [data-flux-sidebar-group] > button,
-.cn-clean-sidebar [data-flux-sidebar-group] > ui-disclosure > button {
-    font-size: 0.72rem !important;
+/* ── Smaller sidebar group names ── */
+.cn-clean-sidebar [data-flux-sidebar-group] > ui-disclosure > button span,
+.cn-clean-sidebar [data-flux-sidebar-group] > button > span,
+.cn-clean-sidebar [data-flux-sidebar-group] > div > div {
+    font-size: 0.65rem !important;
 }
 
 /* ================================================================
