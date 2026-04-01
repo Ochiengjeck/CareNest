@@ -9,105 +9,428 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
-    --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+    --font-sans: 'Plus Jakarta Sans', 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
 
-    --color-zinc-50: #fafafa;
-    --color-zinc-100: #f5f5f5;
-    --color-zinc-200: #e5e5e5;
-    --color-zinc-300: #d4d4d4;
-    --color-zinc-400: #a3a3a3;
-    --color-zinc-500: #737373;
-    --color-zinc-600: #525252;
-    --color-zinc-700: #404040;
-    --color-zinc-800: #262626;
-    --color-zinc-900: #171717;
-    --color-zinc-950: #0a0a0a;
+    /* Light zinc — unchanged for light-mode compatibility */
+    --color-zinc-50:  #fafafa;
+    --color-zinc-100: #f4f4f5;
+    --color-zinc-200: #e4e4e7;
+    --color-zinc-300: #d1d5db;
+    --color-zinc-400: #9ca3af;
+    --color-zinc-500: #6b7280;
+    --color-zinc-600: #4b5563;
 
-    --color-accent: var(--theme-primary-600, var(--color-neutral-800));
-    --color-accent-content: var(--theme-primary-700, var(--color-neutral-800));
-    --color-accent-foreground: var(--theme-accent-fg, var(--color-white));
+    /* ── Midnight palette: blue-slate dark surfaces ── */
+    /* Cards / elevated elements — lightest dark layer  */
+    --color-zinc-700: #1c2333;
+    /* Main body background — base dark layer           */
+    --color-zinc-800: #111827;
+    /* Sidebar background — recessed / deepest layer    */
+    --color-zinc-900: #0b0f1a;
+    /* Overlays, dropdowns, deepest surfaces            */
+    --color-zinc-950: #070b14;
+
+    /* Accent inherits from active theme (ThemeService) */
+    --color-accent:             var(--theme-primary-600, #6366f1);
+    --color-accent-content:     var(--theme-primary-700, #4f46e5);
+    --color-accent-foreground:  var(--theme-accent-fg,   var(--color-white));
 }
 
 @layer theme {
     .dark {
-        --color-accent: var(--theme-primary-400, var(--color-white));
-        --color-accent-content: var(--theme-primary-300, var(--color-white));
-        --color-accent-foreground: var(--theme-accent-fg-dark, var(--color-neutral-800));
+        --color-accent:             var(--theme-primary-400, #818cf8);
+        --color-accent-content:     var(--theme-primary-300, #a5b4fc);
+        --color-accent-foreground:  var(--theme-accent-fg-dark, #0b0f1a);
     }
 }
 
-/* Chatbot theme utilities */
-.chatbot-accent {
-    background-color: var(--theme-primary-600, #2872A1);
-}
-.chatbot-accent:hover {
-    background-color: var(--theme-primary-700, #1e5a80);
-}
-.chatbot-accent:disabled {
-    background-color: var(--theme-primary-400, #6ba3c4);
-}
-.chatbot-accent-ring:focus {
-    --tw-ring-color: var(--theme-primary-500, #3388bb);
-}
-
-/* Theme-aware decorative accents */
-.theme-accent-bg {
-    background-color: var(--theme-primary-50, #eff6ff);
-}
-.dark .theme-accent-bg {
-    background-color: color-mix(in oklch, var(--theme-primary-900, #1e3a5f) 30%, transparent);
-}
-.theme-accent-bg-muted {
-    background-color: var(--theme-primary-100, #dbeafe);
-}
-.dark .theme-accent-bg-muted {
-    background-color: color-mix(in oklch, var(--theme-primary-900, #1e3a5f) 30%, transparent);
-}
-.theme-accent-text {
-    color: var(--theme-primary-600, #2563eb);
-}
-.dark .theme-accent-text {
-    color: var(--theme-primary-400, #60a5fa);
-}
-.theme-accent-border {
-    border-color: var(--theme-primary-200, #bfdbfe);
-}
-.dark .theme-accent-border {
-    border-color: var(--theme-primary-800, #1e3a5f);
-}
-.theme-accent-border-hover:hover {
-    border-color: var(--theme-primary-300, #93c5fd);
-}
-.dark .theme-accent-border-hover:hover {
-    border-color: var(--theme-primary-700, #1d4f7a);
-}
-.theme-accent-bar {
-    background-color: var(--theme-primary-500, #3b82f6);
-}
-.theme-accent-spinner {
-    border-bottom-color: var(--theme-primary-600, #2563eb);
-}
-.dark .theme-accent-spinner {
-    border-bottom-color: var(--theme-primary-400, #60a5fa);
-}
+/* ================================================================
+   MIDNIGHT UI — Base layer
+   ================================================================ */
 
 @layer base {
-
     *,
     ::after,
     ::before,
     ::backdrop,
     ::file-selector-button {
-        border-color: var(--color-gray-200, currentColor);
+        border-color: var(--color-zinc-700, currentColor);
     }
+
+    /* Ambient background glow — dark mode */
+    html.dark body {
+        background:
+            radial-gradient(ellipse 55% 45% at 95% -5%,
+                color-mix(in oklch, var(--color-accent) 10%, transparent) 0%,
+                transparent 60%),
+            radial-gradient(ellipse 40% 35% at 5% 100%,
+                color-mix(in oklch, var(--color-accent) 5%, transparent) 0%,
+                transparent 55%),
+            var(--color-zinc-800);
+        background-attachment: fixed;
+    }
+
+    /* Light mode background */
+    html:not(.dark) body {
+        background:
+            radial-gradient(ellipse 55% 45% at 95% -5%,
+                color-mix(in oklch, var(--color-accent) 5%, transparent) 0%,
+                transparent 60%),
+            #f8fafc;
+        background-attachment: fixed;
+    }
+
+    /* Custom scrollbar — dark */
+    html.dark ::-webkit-scrollbar            { width: 5px; height: 5px; }
+    html.dark ::-webkit-scrollbar-track      { background: transparent; }
+    html.dark ::-webkit-scrollbar-thumb      { background: rgba(255,255,255,0.08); border-radius: 9999px; }
+    html.dark ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.16); }
+
+    /* Custom scrollbar — light */
+    html:not(.dark) ::-webkit-scrollbar            { width: 5px; height: 5px; }
+    html:not(.dark) ::-webkit-scrollbar-track      { background: transparent; }
+    html:not(.dark) ::-webkit-scrollbar-thumb      { background: rgba(0,0,0,0.10); border-radius: 9999px; }
+    html:not(.dark) ::-webkit-scrollbar-thumb:hover { background: rgba(0,0,0,0.18); }
 }
+
+/* ================================================================
+   MIDNIGHT UI — Sidebar active-item override
+   Uses the theme accent color so all 6 themes look correct.
+   ================================================================ */
+
+/* Active nav item glow — dark */
+html.dark [aria-current="page"],
+html.dark [data-current="true"] {
+    background-color: color-mix(in oklch, var(--color-accent) 14%, transparent) !important;
+    color: var(--color-accent-content) !important;
+    box-shadow: inset 3px 0 0 0 var(--color-accent) !important;
+    border-radius: 0 8px 8px 0 !important;
+}
+
+html.dark [aria-current="page"] svg,
+html.dark [data-current="true"] svg {
+    color: var(--color-accent-content) !important;
+    opacity: 1 !important;
+}
+
+/* Active nav item glow — light */
+html:not(.dark) [aria-current="page"],
+html:not(.dark) [data-current="true"] {
+    background-color: color-mix(in oklch, var(--color-accent) 10%, transparent) !important;
+    color: var(--color-accent-content) !important;
+    box-shadow: inset 3px 0 0 0 var(--color-accent) !important;
+    border-radius: 0 8px 8px 0 !important;
+}
+
+html:not(.dark) [aria-current="page"] svg,
+html:not(.dark) [data-current="true"] svg {
+    color: var(--color-accent-content) !important;
+    opacity: 1 !important;
+}
+
+/* ================================================================
+   CLEAN SIDEBAR — White card style, accent color only on active item
+   ================================================================ */
+
+.cn-clean-sidebar {
+    background: #ffffff !important;
+    border-right: 1px solid rgba(0,0,0,0.07) !important;
+    box-shadow: 4px 0 20px rgba(0,0,0,0.06), 1px 0 0 rgba(0,0,0,0.03) !important;
+}
+html.dark .cn-clean-sidebar {
+    background: #111827 !important;
+    border-right: 1px solid rgba(255,255,255,0.06) !important;
+    box-shadow: 4px 0 20px rgba(0,0,0,0.35) !important;
+}
+
+/* Nav text — dark on light, muted white on dark */
+.cn-clean-sidebar a,
+.cn-clean-sidebar button,
+.cn-clean-sidebar span,
+.cn-clean-sidebar p,
+.cn-clean-sidebar label { color: #374151 !important; }
+html.dark .cn-clean-sidebar a,
+html.dark .cn-clean-sidebar button,
+html.dark .cn-clean-sidebar span,
+html.dark .cn-clean-sidebar p,
+html.dark .cn-clean-sidebar label { color: rgba(255,255,255,0.75) !important; }
+
+/* Icons — muted gray */
+.cn-clean-sidebar svg { color: #6B7280 !important; opacity: 1 !important; }
+html.dark .cn-clean-sidebar svg { color: rgba(255,255,255,0.45) !important; opacity: 1 !important; }
+
+/* Hover */
+.cn-clean-sidebar a:hover,
+.cn-clean-sidebar button:hover {
+    background: rgba(0,0,0,0.04) !important;
+    color: #111827 !important;
+}
+html.dark .cn-clean-sidebar a:hover,
+html.dark .cn-clean-sidebar button:hover {
+    background: rgba(255,255,255,0.07) !important;
+    color: white !important;
+}
+.cn-clean-sidebar a:hover svg,
+.cn-clean-sidebar button:hover svg { color: #374151 !important; }
+html.dark .cn-clean-sidebar a:hover svg,
+html.dark .cn-clean-sidebar button:hover svg { color: rgba(255,255,255,0.85) !important; }
+
+/* Active item — solid accent pill, theme-aware */
+.cn-clean-sidebar [aria-current="page"],
+.cn-clean-sidebar [data-current="true"] {
+    background: var(--color-accent) !important;
+    color: white !important;
+    box-shadow: 0 4px 12px color-mix(in oklch, var(--color-accent) 35%, transparent) !important;
+    border-radius: 10px !important;
+    border: none !important;
+}
+.cn-clean-sidebar [aria-current="page"] svg,
+.cn-clean-sidebar [data-current="true"] svg,
+.cn-clean-sidebar [aria-current="page"] span,
+.cn-clean-sidebar [data-current="true"] span {
+    color: white !important;
+    opacity: 1 !important;
+}
+
+/* Separators */
+.cn-clean-sidebar hr,
+.cn-clean-sidebar [role="separator"] { border-color: rgba(0,0,0,0.07) !important; opacity: 1 !important; }
+html.dark .cn-clean-sidebar hr,
+html.dark .cn-clean-sidebar [role="separator"] { border-color: rgba(255,255,255,0.08) !important; }
+
+/* Logo divider line */
+.cn-clean-sidebar .cn-sidebar-logo-divider::after {
+    background: linear-gradient(to right, transparent, rgba(0,0,0,0.08), transparent) !important;
+}
+html.dark .cn-clean-sidebar .cn-sidebar-logo-divider::after {
+    background: linear-gradient(to right, transparent, rgba(255,255,255,0.10), transparent) !important;
+}
+
+/* Group vertical guide line */
+.cn-clean-sidebar [data-flux-sidebar-group] .bg-zinc-200 {
+    background-color: rgba(0,0,0,0.08) !important;
+}
+html.dark .cn-clean-sidebar [data-flux-sidebar-group] .bg-zinc-200 {
+    background-color: rgba(255,255,255,0.12) !important;
+}
+
+/* Collapse toggle button */
+.cn-clean-sidebar [data-flux-sidebar-collapse] button { color: #9CA3AF !important; }
+.cn-clean-sidebar [data-flux-sidebar-collapse] button:hover {
+    background: rgba(0,0,0,0.05) !important;
+    color: #374151 !important;
+}
+html.dark .cn-clean-sidebar [data-flux-sidebar-collapse] button { color: rgba(255,255,255,0.40) !important; }
+html.dark .cn-clean-sidebar [data-flux-sidebar-collapse] button:hover {
+    background: rgba(255,255,255,0.08) !important;
+    color: white !important;
+}
+
+/* Brand name */
+.cn-clean-sidebar [data-flux-sidebar-brand-name],
+.cn-clean-sidebar [data-flux-brand-name] { color: #111827 !important; font-weight: 700 !important; }
+html.dark .cn-clean-sidebar [data-flux-sidebar-brand-name],
+html.dark .cn-clean-sidebar [data-flux-brand-name] { color: white !important; }
+
+/* Logo box — uses accent color */
+.cn-clean-sidebar .cn-sidebar-logo-box {
+    background: var(--color-accent) !important;
+    color: white !important;
+}
+
+/* Appearance toggle footer border */
+.cn-sidebar-footer { border-top-color: rgba(0,0,0,0.07) !important; }
+html.dark .cn-sidebar-footer { border-top-color: rgba(255,255,255,0.07) !important; }
+
+/* User profile text — hide when sidebar is collapsed */
+[data-flux-sidebar-collapsed-desktop] .cn-sidebar-profile-text { display: none !important; }
+
+/* Mentorship item — accent-tinted on clean bg */
+.cn-clean-sidebar .cn-mentorship-item {
+    background: color-mix(in oklch, var(--color-accent) 10%, transparent) !important;
+    border-color: color-mix(in oklch, var(--color-accent) 25%, transparent) !important;
+}
+.cn-clean-sidebar .cn-mentorship-item span { color: var(--color-accent-content) !important; }
+.cn-clean-sidebar .cn-mentorship-item svg { color: var(--color-accent) !important; }
+.cn-clean-sidebar .cn-mentorship-item:hover {
+    background: color-mix(in oklch, var(--color-accent) 16%, transparent) !important;
+}
+
+/* ── Narrower sidebar (13rem instead of Flux default 16rem) ── */
+[data-flux-sidebar]:not([data-flux-sidebar-collapsed-desktop]) {
+    width: 13rem !important;
+}
+
+/* ── Smaller sidebar text + tighter items ── */
+.cn-clean-sidebar [data-flux-sidebar-item] {
+    font-size: 0.72rem !important;
+    line-height: 1.25 !important;
+}
+.cn-clean-sidebar [data-flux-sidebar-group] > button,
+.cn-clean-sidebar [data-flux-sidebar-group] > ui-disclosure > button {
+    font-size: 0.72rem !important;
+}
+
+/* ================================================================
+   MIDNIGHT UI — Utility classes
+   ================================================================ */
+
+/* Glass card */
+.cn-glass {
+    background:  rgba(255, 255, 255, 0.70);
+    border:      1px solid rgba(0, 0, 0, 0.06);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+}
+.dark .cn-glass {
+    background:  rgba(255, 255, 255, 0.025);
+    border:      1px solid rgba(255, 255, 255, 0.06);
+}
+
+/* Gradient text using theme accent */
+.cn-gradient-text {
+    background: linear-gradient(
+        135deg,
+        var(--color-accent-content, #818cf8) 0%,
+        color-mix(in oklch, var(--color-accent) 60%, #c084fc) 100%
+    );
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
+}
+
+/* Stat card icon backgrounds — dark mode (pastel tints) */
+.si-accent  { --si-bg: color-mix(in oklch, var(--color-accent) 14%, transparent); --si-clr: var(--color-accent-content); }
+.si-emerald { --si-bg: rgba(16,185,129,0.12);  --si-clr: #34d399; }
+.si-amber   { --si-bg: rgba(245,158,11,0.12);  --si-clr: #fbbf24; }
+.si-rose    { --si-bg: rgba(239,68,68,0.12);   --si-clr: #f87171; }
+.si-sky     { --si-bg: rgba(14,165,233,0.12);  --si-clr: #38bdf8; }
+.si-violet  { --si-bg: rgba(139,92,246,0.12);  --si-clr: #a78bfa; }
+.si-cyan    { --si-bg: rgba(6,182,212,0.12);   --si-clr: #22d3ee; }
+.si-pink    { --si-bg: rgba(236,72,153,0.12);  --si-clr: #f472b6; }
+.si-teal    { --si-bg: rgba(20,184,166,0.12);  --si-clr: #2dd4bf; }
+.si-orange  { --si-bg: rgba(249,115,22,0.12);  --si-clr: #fb923c; }
+
+/* Light mode — richer tones for white-card contrast */
+html:not(.dark) .si-accent  { --si-bg: color-mix(in oklch, var(--color-accent) 12%, transparent); --si-clr: var(--color-accent-content); }
+html:not(.dark) .si-emerald { --si-bg: rgba(16,185,129,0.12);  --si-clr: #059669; }
+html:not(.dark) .si-amber   { --si-bg: rgba(245,158,11,0.12);  --si-clr: #d97706; }
+html:not(.dark) .si-rose    { --si-bg: rgba(239,68,68,0.12);   --si-clr: #dc2626; }
+html:not(.dark) .si-sky     { --si-bg: rgba(14,165,233,0.12);  --si-clr: #0284c7; }
+html:not(.dark) .si-violet  { --si-bg: rgba(139,92,246,0.12);  --si-clr: #7c3aed; }
+html:not(.dark) .si-cyan    { --si-bg: rgba(6,182,212,0.12);   --si-clr: #0891b2; }
+html:not(.dark) .si-pink    { --si-bg: rgba(236,72,153,0.12);  --si-clr: #db2777; }
+html:not(.dark) .si-teal    { --si-bg: rgba(20,184,166,0.12);  --si-clr: #0d9488; }
+html:not(.dark) .si-orange  { --si-bg: rgba(249,115,22,0.12);  --si-clr: #ea580c; }
+
+.si-icon-bg {
+    background: var(--si-bg,  rgba(99,102,241,0.12));
+    color:       var(--si-clr, #818cf8);
+}
+
+/* Sidebar logo divider */
+.cn-sidebar-logo-divider::after {
+    content: '';
+    display: block;
+    height: 1px;
+    background: linear-gradient(to right, transparent, rgba(0,0,0,0.07), transparent);
+    margin-top: 0.75rem;
+}
+html.dark .cn-sidebar-logo-divider::after {
+    background: linear-gradient(to right, transparent, rgba(255,255,255,0.06), transparent);
+}
+
+/* Mentorship sidebar item badge glow */
+.cn-mentorship-item {
+    background: linear-gradient(135deg,
+        color-mix(in oklch, #6366f1 18%, transparent),
+        color-mix(in oklch, #8b5cf6 12%, transparent)
+    ) !important;
+    border: 1px solid rgba(99,102,241,0.25) !important;
+    color: #a5b4fc !important;
+    border-radius: 8px !important;
+}
+
+.cn-mentorship-item:hover {
+    background: linear-gradient(135deg,
+        color-mix(in oklch, #6366f1 25%, transparent),
+        color-mix(in oklch, #8b5cf6 18%, transparent)
+    ) !important;
+}
+
+.cn-mentorship-item svg {
+    color: #818cf8 !important;
+    opacity: 1 !important;
+}
+
+/* Page heading gradient accent bar */
+.cn-page-header {
+    position: relative;
+    padding-bottom: 1rem;
+    margin-bottom: 1rem;
+}
+
+/* Stat card animated border on hover */
+.cn-stat-card {
+    transition: transform 150ms ease, box-shadow 150ms ease, border-color 150ms ease;
+}
+
+html.dark .cn-stat-card:hover {
+    transform: translateY(-1px);
+    box-shadow:
+        0 4px 24px rgba(0,0,0,0.25),
+        0 1px 3px rgba(0,0,0,0.15);
+    border-color: rgba(255,255,255,0.1) !important;
+}
+
+html:not(.dark) .cn-stat-card:hover {
+    transform: translateY(-1px);
+    box-shadow:
+        0 4px 24px rgba(0,0,0,0.08),
+        0 1px 3px rgba(0,0,0,0.05);
+    border-color: rgba(0,0,0,0.10) !important;
+}
+
+/* Widget card hover */
+.cn-widget-card {
+    transition: border-color 150ms ease;
+}
+html.dark .cn-widget-card:hover {
+    border-color: rgba(255,255,255,0.08) !important;
+}
+html:not(.dark) .cn-widget-card:hover {
+    border-color: rgba(0,0,0,0.12) !important;
+}
+
+/* Table row hover */
+html.dark [data-flux-table-row]:hover,
+html.dark tr:hover td {
+    background-color: rgba(255,255,255,0.02) !important;
+}
+html:not(.dark) [data-flux-table-row]:hover,
+html:not(.dark) tr:hover td {
+    background-color: rgba(0,0,0,0.02) !important;
+}
+
+/* Badge polish */
+html.dark [data-flux-badge] {
+    backdrop-filter: blur(4px);
+}
+html:not(.dark) [data-flux-badge] {
+    backdrop-filter: blur(4px);
+}
+
+/* ================================================================
+   Form control focus ring
+   ================================================================ */
 
 [data-flux-field]:not(ui-radio, ui-checkbox) {
     @apply grid gap-2;
 }
 
 [data-flux-label] {
-    @apply  !mb-0 !leading-tight;
+    @apply !mb-0 !leading-tight;
 }
 
 input:focus[data-flux-control],
@@ -116,36 +439,137 @@ select:focus[data-flux-control] {
     @apply outline-hidden ring-2 ring-accent ring-offset-2 ring-offset-accent-foreground;
 }
 
-/* Auth page theming */
+/* ================================================================
+   Chatbot theme utilities
+   ================================================================ */
+
+.chatbot-accent                   { background-color: var(--theme-primary-600, #4f46e5); }
+.chatbot-accent:hover             { background-color: var(--theme-primary-700, #4338ca); }
+.chatbot-accent:disabled          { background-color: var(--theme-primary-400, #818cf8); }
+.chatbot-accent-ring:focus        { --tw-ring-color: var(--theme-primary-500, #6366f1); }
+
+/* Theme-aware accent utilities used in role-based dashboard */
+.theme-accent-bg {
+    background-color: var(--theme-primary-50, #eef2ff);
+}
+.dark .theme-accent-bg {
+    background-color: color-mix(in oklch, var(--theme-primary-900, #1e1b4b) 30%, transparent);
+}
+.theme-accent-bg-muted {
+    background-color: var(--theme-primary-100, #e0e7ff);
+}
+.dark .theme-accent-bg-muted {
+    background-color: color-mix(in oklch, var(--theme-primary-900, #1e1b4b) 25%, transparent);
+}
+.theme-accent-text {
+    color: var(--theme-primary-600, #4f46e5);
+}
+.dark .theme-accent-text {
+    color: var(--theme-primary-400, #818cf8);
+}
+.theme-accent-border {
+    border-color: var(--theme-primary-200, #c7d2fe);
+}
+.dark .theme-accent-border {
+    border-color: var(--theme-primary-800, #312e81);
+}
+.theme-accent-border-hover:hover {
+    border-color: var(--theme-primary-300, #a5b4fc);
+}
+.dark .theme-accent-border-hover:hover {
+    border-color: var(--theme-primary-700, #4338ca);
+}
+.theme-accent-bar                 { background-color: var(--theme-primary-500, #6366f1); }
+.theme-accent-spinner             { border-bottom-color: var(--theme-primary-600, #4f46e5); }
+.dark .theme-accent-spinner       { border-bottom-color: var(--theme-primary-400, #818cf8); }
+
+/* ================================================================
+   Auth page — radial gradient background
+   ================================================================ */
+
 .auth-page {
     background:
-        radial-gradient(700px circle at 8% 10%, color-mix(in oklch, var(--theme-primary-300, #7dd3fc) 30%, transparent), transparent 60%),
+        radial-gradient(700px circle at 8% 10%,
+            color-mix(in oklch, var(--theme-primary-300, #a5b4fc) 28%, transparent), transparent 60%),
         radial-gradient(900px circle at 90% -10%, #fde68a 0%, transparent 55%),
         linear-gradient(180deg, #f8fafc 0%, #ffffff 40%, #f1f5f9 100%);
 }
 
 .dark .auth-page {
     background:
-        radial-gradient(700px circle at 8% 10%, color-mix(in oklch, var(--theme-primary-400, #38bdf8) 35%, transparent), transparent 60%),
-        linear-gradient(160deg, #0b1220 0%, #0f172a 55%, #111827 100%);
+        radial-gradient(700px circle at 8% 10%,
+            color-mix(in oklch, var(--theme-primary-400, #818cf8) 32%, transparent), transparent 60%),
+        linear-gradient(160deg, #070b14 0%, #0b0f1a 55%, #111827 100%);
 }
 
 .auth-card {
-    background: color-mix(in oklch, #ffffff 92%, transparent);
-    border-color: color-mix(in oklch, #e2e8f0 75%, transparent);
+    background:    color-mix(in oklch, #ffffff 92%, transparent);
+    border-color:  color-mix(in oklch, #e2e8f0 75%, transparent);
     box-shadow:
-        0 24px 80px rgba(15, 23, 42, 0.12),
-        0 2px 8px rgba(15, 23, 42, 0.08);
+        0 24px 80px rgba(15,23,42,0.12),
+        0 2px 8px   rgba(15,23,42,0.08);
 }
 
 .dark .auth-card {
-    background: color-mix(in oklch, #0f172a 88%, transparent);
-    border-color: color-mix(in oklch, #1f2937 75%, transparent);
+    background:    color-mix(in oklch, #0b0f1a 88%, transparent);
+    border-color:  color-mix(in oklch, #1e2333 75%, transparent);
     box-shadow:
-        0 24px 80px rgba(2, 6, 23, 0.45),
-        0 2px 8px rgba(2, 6, 23, 0.35);
+        0 24px 80px rgba(2,6,23,0.50),
+        0 2px 8px   rgba(2,6,23,0.40);
 }
 
-/* \[:where(&)\]:size-4 {
-    @apply size-4;
-} */
+/* ================================================================
+   Global light-mode overrides for inner pages
+   These fix elements that only have dark-mode-optimised utility
+   classes (border-white/*, bg-white/[0.0x], text-zinc-100/300 etc.)
+   ================================================================ */
+
+/* Nearly-invisible white borders → visible slate borders */
+html:not(.dark) [class*="border-white\/"] {
+    border-color: rgba(226, 232, 240, 0.85) !important;
+}
+
+/* Glassmorphic white backgrounds (opacity < ~8%) → solid white */
+html:not(.dark) [class*="bg-white\/[0.0"] {
+    background-color: rgb(255 255 255 / 0.97) !important;
+}
+
+/* Very light (nearly white) zinc text → readable slate text */
+html:not(.dark) .text-zinc-100 { color: rgb(30, 41, 59)   !important; } /* slate-800 */
+html:not(.dark) .text-zinc-200 { color: rgb(51, 65, 85)   !important; } /* slate-700 */
+html:not(.dark) .text-zinc-300 { color: rgb(71, 85, 105)  !important; } /* slate-600 */
+html:not(.dark) .text-zinc-400 { color: rgb(100, 116, 139)!important; } /* slate-500 */
+html:not(.dark) .text-zinc-500 { color: rgb(148, 163, 184)!important; } /* slate-400 */
+
+/* Dark zinc borders → slate borders */
+html:not(.dark) [class*="border-zinc-7"],
+html:not(.dark) [class*="border-zinc-8"],
+html:not(.dark) [class*="border-zinc-9"] {
+    border-color: rgb(226, 232, 240) !important; /* slate-200 */
+}
+
+/* Dark zinc dividers */
+html:not(.dark) [class*="divide-zinc-7"] > * + *,
+html:not(.dark) [class*="divide-zinc-8"] > * + *,
+html:not(.dark) [class*="divide-white"]  > * + * {
+    border-color: rgb(226, 232, 240) !important; /* slate-200 */
+}
+
+/* Dark zinc card/panel backgrounds → light equivalents */
+html:not(.dark) [class*="bg-zinc-800"] { background-color: rgb(255, 255, 255)   !important; }
+html:not(.dark) [class*="bg-zinc-900"] { background-color: rgb(248, 250, 252)   !important; }
+html:not(.dark) [class*="bg-zinc-700"] { background-color: rgb(241, 245, 249)   !important; }
+
+/* Dark zinc hover backgrounds */
+html:not(.dark) [class*="hover:bg-zinc-8"]:hover { background-color: rgb(248, 250, 252) !important; }
+html:not(.dark) [class*="hover:bg-white\/[0.0"]:hover { background-color: rgb(248, 250, 252) !important; }
+
+/* cn-gradient-text stays visible in light mode */
+html:not(.dark) .cn-gradient-text {
+    background: linear-gradient(135deg, var(--theme-primary-600, #4f46e5), var(--theme-primary-400, #818cf8));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+/* Clean sidebar needs no light-mode overrides — it's white by default */

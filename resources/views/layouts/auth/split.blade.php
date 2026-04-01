@@ -7,8 +7,15 @@
         <div class="auth-page relative grid min-h-dvh lg:grid-cols-2">
             {{-- Left Panel --}}
             <div class="relative hidden lg:flex flex-col overflow-hidden">
-                <div class="absolute inset-0 bg-gradient-to-br from-slate-900 via-slate-800 to-emerald-950"></div>
-                <div class="absolute inset-0 bg-[radial-gradient(600px_circle_at_15%_15%,rgba(255,255,255,0.14),transparent_60%)]"></div>
+                {{-- Background photo — place auth-panel.jpg in public/images/ --}}
+                <img
+                    src="/images/auth-panel.png"
+                    alt=""
+                    class="absolute inset-0 h-full w-full object-cover opacity-60"
+                    onerror="this.style.display='none'"
+                />
+                <div class="absolute inset-0 bg-gradient-to-br from-slate-900/70 via-slate-800/60 to-emerald-950/75"></div>
+                <div class="absolute inset-0 bg-[radial-gradient(600px_circle_at_15%_15%,rgba(255,255,255,0.10),transparent_60%)]"></div>
                 <div class="absolute -right-24 top-10 h-72 w-72 rounded-full bg-emerald-400/20 blur-3xl"></div>
                 <div class="absolute -left-24 bottom-0 h-80 w-80 rounded-full bg-sky-400/20 blur-3xl"></div>
 

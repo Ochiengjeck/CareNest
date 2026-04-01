@@ -136,13 +136,13 @@ class extends Component {
                 'route_params' => [$residentId],
             ],
             [
-                'key'         => 'initial_assessment',
-                'label'       => 'Initial Assessment',
-                'icon'        => 'magnifying-glass-circle',
-                'description' => 'Comprehensive care assessment completed at admission',
-                'status'      => 'coming_soon',
-                'route_name'  => null,
-                'route_params' => [],
+                'key'          => 'initial_assessment',
+                'label'        => 'Initial Assessment',
+                'icon'         => 'magnifying-glass-circle',
+                'description'  => 'Comprehensive care assessment completed at admission',
+                'status'       => 'available',
+                'route_name'   => 'residents.initial-assessments.index',
+                'route_params' => [$residentId],
             ],
 
             // Row 4

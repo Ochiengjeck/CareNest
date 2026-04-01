@@ -63,7 +63,7 @@ class extends Component {
     {
         return CarePlan::active()
             ->whereNotNull('review_date')
-            ->where('review_date', '<=', now()->addDays(7))
+            ->where('review_date', '<=', now()->addDays(30))
             ->count();
     }
 
@@ -117,7 +117,7 @@ class extends Component {
                 title="Due for Review"
                 :value="$this->dueForReviewCount"
                 icon="clock"
-                description="Within 7 days"
+                description="Within 30 days"
             />
         </div>
 
@@ -224,7 +224,7 @@ class extends Component {
                             @if($plan->review_date)
                                 <div>
                                     <span class="text-zinc-400">{{ __('Review') }}:</span>
-                                    <span @class(['text-amber-600 dark:text-amber-400 font-medium' => $plan->review_date->lte(now()->addDays(7))])>
+                                    <span @class(['text-amber-600 dark:text-amber-400 font-medium' => $plan->review_date->lte(now()->addDays(30))])>
                                         {{ $plan->review_date->format('M d, Y') }}
                                     </span>
                                 </div>

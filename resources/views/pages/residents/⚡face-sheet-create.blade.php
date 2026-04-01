@@ -234,7 +234,7 @@ class extends Component {
             </flux:card>
 
             <flux:card class="space-y-4">
-                <div class="flex items-center gap-2"><flux:icon name="brain" class="size-5 text-accent" /><flux:heading size="sm">{{ __('Psychiatric Provider') }}</flux:heading></div>
+                <div class="flex items-center gap-2"><flux:icon name="sparkles" class="size-5 text-accent" /><flux:heading size="sm">{{ __('Psychiatric Provider') }}</flux:heading></div>
                 <flux:separator />
                 <div class="grid gap-4 sm:grid-cols-2">
                     <flux:input wire:model="psych_name" :label="__('Name')" />

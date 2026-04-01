@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class CarePlan extends Model
@@ -22,15 +23,18 @@ class CarePlan extends Model
         'goals',
         'interventions',
         'notes',
+        'recovery_team',
         'created_by',
         'reviewed_by',
+        'updated_by',
     ];
 
     protected function casts(): array
     {
         return [
-            'start_date' => 'date',
-            'review_date' => 'date',
+            'start_date'    => 'date',
+            'review_date'   => 'date',
+            'recovery_team' => 'array',
         ];
     }
 
@@ -49,6 +53,16 @@ class CarePlan extends Model
     public function reviewer(): BelongsTo
     {
         return $this->belongsTo(User::class, 'reviewed_by');
+    }
+
+    public function updater(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'updated_by');
+    }
+
+    public function carePlanGoals(): HasMany
+    {
+        return $this->hasMany(CarePlanGoal::class)->orderBy('sort_order');
     }
 
     // Scopes
@@ -78,25 +92,25 @@ class CarePlan extends Model
     public function getTypeLabelAttribute(): string
     {
         return match ($this->type) {
-            'general' => 'General',
-            'nutrition' => 'Nutrition',
-            'mobility' => 'Mobility',
+            'general'       => 'General',
+            'nutrition'     => 'Nutrition',
+            'mobility'      => 'Mobility',
             'mental_health' => 'Mental Health',
             'personal_care' => 'Personal Care',
-            'medication' => 'Medication',
-            'social' => 'Social',
-            default => ucfirst($this->type),
+            'medication'    => 'Medication',
+            'social'        => 'Social',
+            default         => ucfirst($this->type),
         };
     }
 
     public function getStatusColorAttribute(): string
     {
         return match ($this->status) {
-            'active' => 'green',
-            'draft' => 'zinc',
-            'archived' => 'amber',
+            'active'       => 'green',
+            'draft'        => 'zinc',
+            'archived'     => 'amber',
             'under_review' => 'blue',
-            default => 'zinc',
+            default        => 'zinc',
         };
     }
 }

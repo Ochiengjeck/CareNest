@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AdlFormExportController;
+use App\Http\Controllers\InitialAssessmentExportController;
 use App\Http\Controllers\AppointmentLogExportController;
 use App\Http\Controllers\AsamChecklistExportController;
 use App\Http\Controllers\AuthorizationExportController;
@@ -37,6 +38,7 @@ Route::middleware(['auth', 'verified', 'can:view-residents'])->group(function ()
         Route::livewire('residents/{resident}/mental-status/create', 'pages::residents.mental-status-create')->name('residents.mental-status.create');
         Route::livewire('residents/{resident}/treatment-refusals/create', 'pages::residents.treatment-refusal-create')->name('residents.treatment-refusals.create');
         Route::livewire('residents/{resident}/appointment-logs/create', 'pages::residents.appointment-log-create')->name('residents.appointment-logs.create');
+        Route::livewire('residents/{resident}/initial-assessments/create', 'pages::residents.initial-assessment-create')->name('residents.initial-assessments.create');
 
         // Discharge Report Exports
         Route::prefix('residents/discharge/export')->name('residents.discharge.export.')->group(function () {
@@ -111,6 +113,11 @@ Route::middleware(['auth', 'verified', 'can:view-residents'])->group(function ()
     Route::livewire('residents/{resident}/appointment-logs', 'pages::residents.appointment-logs')->name('residents.appointment-logs.index');
     Route::livewire('appointment-logs/{appointmentLog}', 'pages::residents.appointment-log-show')->name('appointment-logs.show');
     Route::get('appointment-logs/{appointmentLog}/export/pdf', [AppointmentLogExportController::class, 'pdf'])->name('appointment-logs.export.pdf');
+
+    // Initial Assessments
+    Route::livewire('residents/{resident}/initial-assessments', 'pages::residents.initial-assessments')->name('residents.initial-assessments.index');
+    Route::livewire('initial-assessments/{initialAssessment}', 'pages::residents.initial-assessment-show')->name('initial-assessments.show');
+    Route::get('initial-assessments/{initialAssessment}/export/pdf', [InitialAssessmentExportController::class, 'pdf'])->name('initial-assessments.export.pdf');
 
     Route::livewire('residents/{resident}/reports', 'pages::residents.reports')->name('residents.reports');
     Route::livewire('residents/{resident}', 'pages::residents.show')->name('residents.show');
