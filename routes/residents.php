@@ -39,6 +39,9 @@ Route::middleware(['auth', 'verified', 'can:view-residents'])->group(function ()
         Route::livewire('residents/{resident}/treatment-refusals/create', 'pages::residents.treatment-refusal-create')->name('residents.treatment-refusals.create');
         Route::livewire('residents/{resident}/appointment-logs/create', 'pages::residents.appointment-log-create')->name('residents.appointment-logs.create');
         Route::livewire('residents/{resident}/initial-assessments/create', 'pages::residents.initial-assessment-create')->name('residents.initial-assessments.create');
+        Route::livewire('residents/{resident}/nursing-assessments/create', 'pages::residents.nursing-assessment-create')->name('residents.nursing-assessments.create');
+        Route::livewire('residents/{resident}/art-meetings/create', 'pages::residents.art-meeting-create')->name('residents.art-meetings.create');
+        Route::livewire('residents/{resident}/observation-notes/create', 'pages::residents.observation-note-create')->name('residents.observation-notes.create');
 
         // Discharge Report Exports
         Route::prefix('residents/discharge/export')->name('residents.discharge.export.')->group(function () {
@@ -119,7 +122,18 @@ Route::middleware(['auth', 'verified', 'can:view-residents'])->group(function ()
     Route::livewire('initial-assessments/{initialAssessment}', 'pages::residents.initial-assessment-show')->name('initial-assessments.show');
     Route::get('initial-assessments/{initialAssessment}/export/pdf', [InitialAssessmentExportController::class, 'pdf'])->name('initial-assessments.export.pdf');
 
-    Route::livewire('residents/{resident}/reports', 'pages::residents.reports')->name('residents.reports');
+    // Nursing Assessments
+    Route::livewire('residents/{resident}/nursing-assessments', 'pages::residents.nursing-assessments')->name('residents.nursing-assessments.index');
+    Route::livewire('nursing-assessments/{nursingAssessment}', 'pages::residents.nursing-assessment-show')->name('nursing-assessments.show');
+
+    // ART Meetings
+    Route::livewire('residents/{resident}/art-meetings', 'pages::residents.art-meetings')->name('residents.art-meetings.index');
+    Route::livewire('art-meetings/{artMeeting}', 'pages::residents.art-meeting-show')->name('art-meetings.show');
+
+    // Observation Notes (RON)
+    Route::livewire('residents/{resident}/observation-notes', 'pages::residents.observation-notes')->name('residents.observation-notes.index');
+    Route::livewire('observation-notes/{observationNote}', 'pages::residents.observation-note-show')->name('observation-notes.show');
+
     Route::livewire('residents/{resident}', 'pages::residents.show')->name('residents.show');
 });
 

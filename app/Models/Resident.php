@@ -90,6 +90,21 @@ class Resident extends Model
         return $this->hasOne(Discharge::class);
     }
 
+    public function nursingAssessments(): HasMany
+    {
+        return $this->hasMany(NursingAssessment::class);
+    }
+
+    public function artMeetings(): HasMany
+    {
+        return $this->hasMany(ArtMeeting::class);
+    }
+
+    public function observationNotes(): HasMany
+    {
+        return $this->hasMany(ObservationNote::class);
+    }
+
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');

@@ -18,6 +18,7 @@ class TherapySession extends Model
         'start_time',
         'end_time',
         'service_type',
+        'modality',
         'challenge_index',
         'session_topic',
         'interventions',
@@ -114,6 +115,26 @@ class TherapySession extends Model
     }
 
     // Accessors
+
+    public function getModalityLabelAttribute(): ?string
+    {
+        if (! $this->modality) {
+            return null;
+        }
+
+        return match ($this->modality) {
+            'CBT'               => 'Cognitive Behavioral Therapy (CBT)',
+            'DBT'               => 'Dialectical Behavior Therapy (DBT)',
+            'MI'                => 'Motivational Interviewing (MI)',
+            'IPT'               => 'Interpersonal Therapy (IPT)',
+            'EMDR'              => 'EMDR',
+            'Psychoeducation'   => 'Psychoeducation',
+            'Solution-Focused'  => 'Solution-Focused',
+            'Group Process'     => 'Group Process',
+            'Other'             => 'Other',
+            default             => $this->modality,
+        };
+    }
 
     public function getServiceTypeLabelAttribute(): string
     {

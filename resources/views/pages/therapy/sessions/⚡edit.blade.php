@@ -25,6 +25,7 @@ class extends Component {
     public string $start_time = '';
     public string $end_time = '';
     public string $service_type = '';
+    public string $modality = '';
     public string $challenge_index = '';
     public string $session_topic = '';
     public string $interventions = '';
@@ -42,6 +43,7 @@ class extends Component {
         $this->start_time = $session->start_time;
         $this->end_time = $session->end_time;
         $this->service_type = $session->service_type;
+        $this->modality = $session->modality ?? '';
         $this->challenge_index = $session->challenge_index ?? '';
         $this->session_topic = $session->session_topic;
         $this->interventions = $session->interventions ?? '';
@@ -209,6 +211,13 @@ class extends Component {
 
                     <flux:select wire:model="service_type" label="Service Type" required>
                         @foreach($this->serviceTypes as $value => $label)
+                            <flux:select.option value="{{ $value }}">{{ $label }}</flux:select.option>
+                        @endforeach
+                    </flux:select>
+
+                    <flux:select wire:model="modality" label="Therapy Modality">
+                        <flux:select.option value="">{{ __('Select modality (optional)...') }}</flux:select.option>
+                        @foreach(['CBT' => 'Cognitive Behavioral Therapy (CBT)', 'DBT' => 'Dialectical Behavior Therapy (DBT)', 'MI' => 'Motivational Interviewing (MI)', 'IPT' => 'Interpersonal Therapy (IPT)', 'EMDR' => 'EMDR', 'Psychoeducation' => 'Psychoeducation', 'Solution-Focused' => 'Solution-Focused', 'Group Process' => 'Group Process', 'Other' => 'Other'] as $value => $label)
                             <flux:select.option value="{{ $value }}">{{ $label }}</flux:select.option>
                         @endforeach
                     </flux:select>

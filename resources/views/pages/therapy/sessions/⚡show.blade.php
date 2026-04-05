@@ -159,6 +159,12 @@ class extends Component {
                             <flux:badge :color="$this->session->service_type_color">{{ $this->session->service_type_label }}</flux:badge>
                         </dd>
                     </div>
+                    @if($this->session->modality)
+                    <div>
+                        <dt class="text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wide">{{ __('Therapy Modality') }}</dt>
+                        <dd class="mt-1"><flux:badge color="cyan">{{ $this->session->modality_label }}</flux:badge></dd>
+                    </div>
+                    @endif
                     @if($this->session->challenge_index)
                     <div class="sm:col-span-2">
                         <dt class="text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wide">{{ __('Treatment Plan Index') }}</dt>

@@ -1,6 +1,6 @@
 <?php
 
-use App\Models\Authorization;
+use App\Models\NursingAssessment;
 use App\Models\Resident;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
@@ -11,7 +11,7 @@ use Livewire\WithPagination;
 
 new
 #[Layout('layouts.app.sidebar')]
-#[Title('Authorizations for Release of Information')]
+#[Title('Nursing Assessments')]
 class extends Component {
     use WithPagination;
 
@@ -33,7 +33,7 @@ class extends Component {
     #[Computed]
     public function records()
     {
-        return Authorization::where('resident_id', $this->residentId)
+        return NursingAssessment::where('resident_id', $this->residentId)
             ->with(['recorder'])
             ->latest()
             ->paginate(15);
@@ -42,25 +42,23 @@ class extends Component {
     #[Computed]
     public function totalRecords(): int
     {
-        return Authorization::where('resident_id', $this->residentId)->count();
+        return NursingAssessment::where('resident_id', $this->residentId)->count();
     }
 
     #[Computed]
     public function recordsThisMonth(): int
     {
-        return Authorization::where('resident_id', $this->residentId)
+        return NursingAssessment::where('resident_id', $this->residentId)
             ->whereMonth('created_at', now()->month)
             ->whereYear('created_at', now()->year)
             ->count();
     }
 
     #[Computed]
-    public function signedCount(): int
+    public function highRiskCount(): int
     {
-        return Authorization::where('resident_id', $this->residentId)
-            ->where(function ($q) {
-                $q->whereNotNull('employee_signature_id')->orWhereNotNull('employee_raw_signature_data');
-            })
+        return NursingAssessment::where('resident_id', $this->residentId)
+            ->whereIn('risk_level', ['high', 'imminent'])
             ->count();
     }
 }; ?>
@@ -72,13 +70,13 @@ class extends Component {
             <div class="flex items-center gap-3">
                 <flux:button variant="ghost" :href="route('residents.show', $this->residentId)" wire:navigate icon="arrow-left" />
                 <div>
-                    <flux:heading size="xl">{{ __('Authorization for Release of Information') }}</flux:heading>
+                    <flux:heading size="xl">{{ __('Nursing Assessments') }}</flux:heading>
                     <flux:subheading>{{ $this->resident->full_name }}</flux:subheading>
                 </div>
             </div>
             @can('manage-residents')
-                <flux:button variant="primary" icon="plus" :href="route('residents.authorizations.create', $this->residentId)" wire:navigate>
-                    {{ __('New Authorization') }}
+                <flux:button variant="primary" icon="plus" :href="route('residents.nursing-assessments.create', $this->residentId)" wire:navigate>
+                    {{ __('New Assessment') }}
                 </flux:button>
             @endcan
         </div>
@@ -86,11 +84,11 @@ class extends Component {
         <div class="grid grid-cols-3 gap-4">
             <flux:card class="flex items-center gap-3 p-4">
                 <div class="flex size-10 items-center justify-center rounded-full bg-blue-50 dark:bg-blue-900/20">
-                    <flux:icon name="document-check" class="size-5 text-blue-600 dark:text-blue-400" />
+                    <flux:icon name="clipboard-document-check" class="size-5 text-blue-600 dark:text-blue-400" />
                 </div>
                 <div>
                     <div class="text-xl font-bold text-zinc-800 dark:text-zinc-100">{{ $this->totalRecords }}</div>
-                    <div class="text-xs text-zinc-500 dark:text-zinc-400">{{ __('Total') }}</div>
+                    <div class="text-xs text-zinc-500 dark:text-zinc-400">{{ __('Total Assessments') }}</div>
                 </div>
             </flux:card>
             <flux:card class="flex items-center gap-3 p-4">
@@ -103,12 +101,12 @@ class extends Component {
                 </div>
             </flux:card>
             <flux:card class="flex items-center gap-3 p-4">
-                <div class="flex size-10 items-center justify-center rounded-full bg-green-50 dark:bg-green-900/20">
-                    <flux:icon name="check-badge" class="size-5 text-green-600 dark:text-green-400" />
+                <div class="flex size-10 items-center justify-center rounded-full bg-red-50 dark:bg-red-900/20">
+                    <flux:icon name="exclamation-triangle" class="size-5 text-red-600 dark:text-red-400" />
                 </div>
                 <div>
-                    <div class="text-xl font-bold text-zinc-800 dark:text-zinc-100">{{ $this->signedCount }}</div>
-                    <div class="text-xs text-zinc-500 dark:text-zinc-400">{{ __('Employee Signed') }}</div>
+                    <div class="text-xl font-bold text-zinc-800 dark:text-zinc-100">{{ $this->highRiskCount }}</div>
+                    <div class="text-xs text-zinc-500 dark:text-zinc-400">{{ __('High / Imminent Risk') }}</div>
                 </div>
             </flux:card>
         </div>
@@ -116,15 +114,15 @@ class extends Component {
         @if ($this->records->isEmpty())
             <flux:card class="flex flex-col items-center py-16 text-center">
                 <div class="mb-4 flex size-16 items-center justify-center rounded-full bg-zinc-100 dark:bg-zinc-800">
-                    <flux:icon name="document-check" class="size-8 text-zinc-400" />
+                    <flux:icon name="clipboard-document-check" class="size-8 text-zinc-400" />
                 </div>
-                <flux:heading size="sm">{{ __('No authorizations yet') }}</flux:heading>
+                <flux:heading size="sm">{{ __('No nursing assessments yet') }}</flux:heading>
                 <flux:text class="mt-1 max-w-sm text-sm text-zinc-400">
-                    {{ __('Authorization records for this resident will appear here.') }}
+                    {{ __('Nursing assessments for this resident will appear here.') }}
                 </flux:text>
                 @can('manage-residents')
-                    <flux:button class="mt-6" variant="primary" icon="plus" :href="route('residents.authorizations.create', $this->residentId)" wire:navigate>
-                        {{ __('Create First Authorization') }}
+                    <flux:button class="mt-6" variant="primary" icon="plus" :href="route('residents.nursing-assessments.create', $this->residentId)" wire:navigate>
+                        {{ __('Create First Assessment') }}
                     </flux:button>
                 @endcan
             </flux:card>
@@ -132,48 +130,30 @@ class extends Component {
             <flux:card class="overflow-hidden p-0">
                 <flux:table>
                     <flux:table.columns>
-                        <flux:table.column>{{ __('Date Created') }}</flux:table.column>
-                        <flux:table.column>{{ __('Recipient') }}</flux:table.column>
-                        <flux:table.column>{{ __('Info Released') }}</flux:table.column>
-                        <flux:table.column>{{ __('Expiration') }}</flux:table.column>
-                        <flux:table.column>{{ __('Signed') }}</flux:table.column>
-                        <flux:table.column>{{ __('Export') }}</flux:table.column>
+                        <flux:table.column>{{ __('Date') }}</flux:table.column>
+                        <flux:table.column>{{ __('Risk Level') }}</flux:table.column>
+                        <flux:table.column>{{ __('Assessed By') }}</flux:table.column>
+                        <flux:table.column>{{ __('Created') }}</flux:table.column>
                         <flux:table.column class="w-10"></flux:table.column>
                     </flux:table.columns>
                     <flux:table.rows>
                         @foreach ($this->records as $record)
                             <flux:table.row :key="$record->id">
                                 <flux:table.cell>
-                                    <div class="font-medium">{{ $record->created_at->format('M d, Y') }}</div>
+                                    <div class="font-medium">{{ $record->assessment_date->format('M d, Y') }}</div>
+                                    <div class="text-xs text-zinc-400">{{ $record->assessment_date->format('g:i A') }}</div>
+                                </flux:table.cell>
+                                <flux:table.cell>
+                                    <flux:badge size="sm" :color="$record->risk_level_color">{{ $record->risk_level_label }}</flux:badge>
+                                </flux:table.cell>
+                                <flux:table.cell>{{ $record->recorder?->name ?? '—' }}</flux:table.cell>
+                                <flux:table.cell>
+                                    <div class="text-sm">{{ $record->created_at->format('M d, Y') }}</div>
                                     <div class="text-xs text-zinc-400">{{ $record->created_at->diffForHumans() }}</div>
-                                </flux:table.cell>
-                                <flux:table.cell>{{ $record->recipient_person_agency ?? $record->agency_name ?? '—' }}</flux:table.cell>
-                                <flux:table.cell>
-                                    @if (!empty($record->information_released))
-                                        <flux:badge size="sm" color="blue">{{ count($record->information_released) }} items</flux:badge>
-                                    @else
-                                        <span class="text-zinc-400">—</span>
-                                    @endif
-                                </flux:table.cell>
-                                <flux:table.cell>
-                                    @php $expMap = ['one_year'=>'1 Year','sixty_days'=>'60 Days','specific_date'=>'Specific Date','other'=>'Other']; @endphp
-                                    {{ $expMap[$record->expiration_type] ?? '—' }}
-                                </flux:table.cell>
-                                <flux:table.cell>
-                                    @if ($record->employee_signature_id || $record->employee_raw_signature_data)
-                                        <flux:badge size="sm" color="green" icon="check-circle">{{ __('Signed') }}</flux:badge>
-                                    @else
-                                        <flux:badge size="sm" color="zinc">{{ __('Unsigned') }}</flux:badge>
-                                    @endif
-                                </flux:table.cell>
-                                <flux:table.cell>
-                                    <a href="{{ route('authorizations.export.pdf', $record->id) }}" target="_blank">
-                                        <flux:button variant="ghost" size="sm" icon="arrow-down-tray" />
-                                    </a>
                                 </flux:table.cell>
                                 <flux:table.cell>
                                     <flux:button variant="ghost" size="sm" icon="arrow-top-right-on-square"
-                                        :href="route('authorizations.show', $record->id)" wire:navigate />
+                                        :href="route('nursing-assessments.show', $record->id)" wire:navigate />
                                 </flux:table.cell>
                             </flux:table.row>
                         @endforeach

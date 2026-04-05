@@ -59,7 +59,7 @@ class extends Component {
     <div class="max-w-5xl space-y-6">
         <div class="flex flex-wrap items-start justify-between gap-4">
             <div class="flex items-center gap-3">
-                <flux:button variant="ghost" :href="route('residents.reports', $this->residentId)" wire:navigate icon="arrow-left" />
+                <flux:button variant="ghost" :href="route('residents.show', $this->residentId)" wire:navigate icon="arrow-left" />
                 <div>
                     <flux:heading size="xl">{{ __('BHP Progress Notes') }}</flux:heading>
                     <flux:subheading>{{ $this->resident->full_name }}</flux:subheading>
