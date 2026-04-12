@@ -11,7 +11,7 @@ use Livewire\WithPagination;
 
 new
 #[Layout('layouts.app.sidebar')]
-#[Title('Financial Transaction Records')]
+#[Title('Resident Financial Records')]
 class extends Component {
     use WithPagination;
 
@@ -74,7 +74,7 @@ class extends Component {
             <div class="flex items-center gap-3">
                 <flux:button variant="ghost" :href="route('residents.show', $this->residentId)" wire:navigate icon="arrow-left" />
                 <div>
-                    <flux:heading size="xl">{{ __('Financial Transaction Records') }}</flux:heading>
+                    <flux:heading size="xl">{{ __('Resident Financial Records') }}</flux:heading>
                     <div class="mt-0.5 flex flex-wrap items-center gap-2 text-sm">
                         <flux:subheading>{{ $this->resident->full_name }}</flux:subheading>
                         <flux:badge size="sm" :color="$this->resident->status === 'active' ? 'green' : ($this->resident->status === 'discharged' ? 'amber' : 'red')">
@@ -141,7 +141,7 @@ class extends Component {
                 </div>
                 <flux:heading size="sm">{{ __('No financial records yet') }}</flux:heading>
                 <flux:text class="mt-1 max-w-sm text-sm text-zinc-400">
-                    {{ __('Financial transaction records for this resident will appear here.') }}
+                    {{ __('Resident financial records for this resident will appear here.') }}
                 </flux:text>
                 @can('manage-residents')
                     <flux:button

@@ -11,7 +11,7 @@ use Livewire\WithPagination;
 
 new
 #[Layout('layouts.app.sidebar')]
-#[Title('Safety Plans')]
+#[Title('Crisis Plans')]
 class extends Component {
     use WithPagination;
 
@@ -58,13 +58,13 @@ class extends Component {
             <div class="flex items-center gap-3">
                 <flux:button variant="ghost" :href="route('residents.show', $this->residentId)" wire:navigate icon="arrow-left" />
                 <div>
-                    <flux:heading size="xl">{{ __('Safety Plans') }}</flux:heading>
+                    <flux:heading size="xl">{{ __('Crisis Plans') }}</flux:heading>
                     <flux:subheading>{{ $this->resident->full_name }}</flux:subheading>
                 </div>
             </div>
             @can('manage-residents')
                 <flux:button variant="primary" icon="plus" :href="route('residents.safety-plans.create', $this->residentId)" wire:navigate>
-                    {{ __('New Safety Plan') }}
+                    {{ __('New Crisis Plan') }}
                 </flux:button>
             @endcan
         </div>
@@ -95,10 +95,10 @@ class extends Component {
                 <div class="mb-4 flex size-16 items-center justify-center rounded-full bg-zinc-100 dark:bg-zinc-800">
                     <flux:icon name="shield-check" class="size-8 text-zinc-400" />
                 </div>
-                <flux:heading size="sm">{{ __('No safety plans yet') }}</flux:heading>
+                <flux:heading size="sm">{{ __('No crisis plans yet') }}</flux:heading>
                 @can('manage-residents')
                     <flux:button class="mt-6" variant="primary" icon="plus" :href="route('residents.safety-plans.create', $this->residentId)" wire:navigate>
-                        {{ __('Create Safety Plan') }}
+                        {{ __('Create Crisis Plan') }}
                     </flux:button>
                 @endcan
             </flux:card>

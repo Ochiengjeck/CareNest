@@ -59,7 +59,7 @@
     {{-- Header --}}
     <div class="header">
         <h1>{{ strtoupper($facility) }}</h1>
-        <div class="doc-title">Financial Transaction Record</div>
+        <div class="doc-title">Resident Financial Record</div>
     </div>
 
     {{-- Resident strip --}}
@@ -177,7 +177,7 @@
 
     {{-- Footer --}}
     <div class="footer">
-        <span>{{ $facility }} &mdash; Confidential Financial Record</span>
+        <span>{{ $facility }} &mdash; Confidential Resident Financial Record</span>
         <span>Generated {{ now()->format('m/d/Y g:i A') }}</span>
     </div>
 

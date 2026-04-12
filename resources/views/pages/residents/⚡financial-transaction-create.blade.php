@@ -12,7 +12,7 @@ use Livewire\Component;
 
 new
 #[Layout('layouts.app.sidebar')]
-#[Title('New Financial Transaction Record')]
+#[Title('New Resident Financial Record')]
 class extends Component {
     use FinancialTransactionValidationRules;
 
@@ -105,7 +105,7 @@ class extends Component {
         $isFirst = ! $user->signatures()->exists();
 
         $sig = $user->signatures()->create([
-            'name'           => 'Financial Record — ' . now()->format('M d, Y'),
+            'name'           => 'Resident Financial Record — ' . now()->format('M d, Y'),
             'pen_color'      => $penColor,
             'signature_data' => $dataUrl,
             'is_active'      => $isFirst,
@@ -142,7 +142,7 @@ class extends Component {
             'recorded_by'        => auth()->id(),
         ]);
 
-        session()->flash('status', 'Financial transaction record saved successfully.');
+        session()->flash('status', 'Resident financial record saved successfully.');
         $this->redirect(route('residents.financial-transactions.index', $this->residentId), navigate: true);
     }
 }; ?>
@@ -154,7 +154,7 @@ class extends Component {
         <div class="mb-6 flex items-center gap-3">
             <flux:button variant="ghost" :href="route('residents.financial-transactions.index', $this->residentId)" wire:navigate icon="arrow-left" />
             <div>
-                <flux:heading size="xl">{{ __('New Financial Transaction Record') }}</flux:heading>
+                <flux:heading size="xl">{{ __('New Resident Financial Record') }}</flux:heading>
                 <flux:subheading>{{ $this->resident->full_name }}</flux:subheading>
             </div>
         </div>

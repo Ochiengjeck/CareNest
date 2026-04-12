@@ -12,7 +12,7 @@ use Livewire\Component;
 
 new
 #[Layout('layouts.app.sidebar')]
-#[Title('New Contact Note')]
+#[Title('New Contact Report')]
 class extends Component {
     use ContactNoteValidationRules;
 
@@ -56,7 +56,7 @@ class extends Component {
         $user    = auth()->user();
         $isFirst = ! $user->signatures()->exists();
         $sig = $user->signatures()->create([
-            'name'           => 'Contact Note — ' . now()->format('M d, Y'),
+            'name'           => 'Contact Report — ' . now()->format('M d, Y'),
             'pen_color'      => $penColor,
             'signature_data' => $dataUrl,
             'is_active'      => $isFirst,
@@ -91,7 +91,7 @@ class extends Component {
             'raw_signature_data' => ($this->signature_id === null && $this->rawSignatureData !== '') ? $this->rawSignatureData : null,
             'recorded_by'     => auth()->id(),
         ]);
-        session()->flash('status', 'Contact note saved successfully.');
+        session()->flash('status', 'Contact report saved successfully.');
         $this->redirect(route('residents.contact-notes.index', $this->residentId), navigate: true);
     }
 }; ?>
@@ -102,7 +102,7 @@ class extends Component {
         <div class="mb-6 flex items-center gap-3">
             <flux:button variant="ghost" :href="route('residents.contact-notes.index', $this->residentId)" wire:navigate icon="arrow-left" />
             <div>
-                <flux:heading size="xl">{{ __('New Contact Note') }}</flux:heading>
+                <flux:heading size="xl">{{ __('New Contact Report') }}</flux:heading>
                 <flux:subheading>{{ $this->resident->full_name }}</flux:subheading>
             </div>
         </div>

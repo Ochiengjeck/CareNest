@@ -43,7 +43,7 @@
 
     <div class="header">
         <h1>{{ strtoupper($facility) }}</h1>
-        <div class="doc-title">Staffing Note</div>
+        <div class="doc-title">Staff Report</div>
     </div>
 
     <div class="resident-strip">

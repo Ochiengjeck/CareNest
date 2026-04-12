@@ -34,7 +34,7 @@
 
     <div class="header">
         <h1>{{ strtoupper($facility) }}</h1>
-        <div class="doc-title">BHP Progress Note</div>
+        <div class="doc-title">BHP Progress Report</div>
     </div>
 
     <div class="resident-strip">
@@ -136,7 +136,7 @@
     </div>
 
     <div class="footer">
-        <span>{{ $facility }} &mdash; Confidential BHP Progress Note</span>
+        <span>{{ $facility }} &mdash; Confidential BHP Progress Report</span>
         <span>Generated {{ now()->format('m/d/Y g:i A') }}</span>
     </div>
 </div>

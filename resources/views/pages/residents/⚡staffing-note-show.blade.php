@@ -10,7 +10,7 @@ use Livewire\Component;
 
 new
 #[Layout('layouts.app.sidebar')]
-#[Title('Staffing Note')]
+#[Title('Staff Report')]
 class extends Component {
     #[Locked]
     public int $recordId;
@@ -46,7 +46,7 @@ class extends Component {
             <div class="flex items-center gap-3">
                 <flux:button variant="ghost" :href="route('residents.staffing-notes.index', $record->resident_id)" wire:navigate icon="arrow-left" />
                 <div>
-                    <flux:heading size="xl">{{ __('Staffing Note') }}</flux:heading>
+                    <flux:heading size="xl">{{ __('Staff Report') }}</flux:heading>
                     <flux:subheading>{{ $record->resident->full_name }}</flux:subheading>
                 </div>
             </div>

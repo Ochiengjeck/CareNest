@@ -11,7 +11,7 @@ use Livewire\WithPagination;
 
 new
 #[Layout('layouts.app.sidebar')]
-#[Title('BHP Progress Notes')]
+#[Title('BHP Progress Reports')]
 class extends Component {
     use WithPagination;
 
@@ -61,7 +61,7 @@ class extends Component {
             <div class="flex items-center gap-3">
                 <flux:button variant="ghost" :href="route('residents.show', $this->residentId)" wire:navigate icon="arrow-left" />
                 <div>
-                    <flux:heading size="xl">{{ __('BHP Progress Notes') }}</flux:heading>
+                    <flux:heading size="xl">{{ __('BHP Progress Reports') }}</flux:heading>
                     <flux:subheading>{{ $this->resident->full_name }}</flux:subheading>
                 </div>
             </div>
@@ -107,7 +107,7 @@ class extends Component {
                 <div class="mb-4 flex size-16 items-center justify-center rounded-full bg-zinc-100 dark:bg-zinc-800">
                     <flux:icon name="sparkles" class="size-8 text-zinc-400" />
                 </div>
-                <flux:heading size="sm">{{ __('No BHP progress notes yet') }}</flux:heading>
+                <flux:heading size="sm">{{ __('No BHP progress reports yet') }}</flux:heading>
                 @can('manage-residents')
                     <flux:button class="mt-6" variant="primary" icon="plus" :href="route('residents.bhp-progress-notes.create', $this->residentId)" wire:navigate>
                         {{ __('Create First Note') }}

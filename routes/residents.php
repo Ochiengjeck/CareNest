@@ -25,6 +25,7 @@ Route::middleware(['auth', 'verified', 'can:view-residents'])->group(function ()
         Route::livewire('residents/create', 'pages::residents.create')->name('residents.create');
         Route::livewire('residents/{resident}/edit', 'pages::residents.edit')->name('residents.edit');
         Route::livewire('residents/{resident}/discharge', 'pages::residents.discharge')->name('residents.discharge');
+        Route::livewire('residents/{resident}/readmit', 'pages::residents.readmit')->name('residents.readmit');
         Route::livewire('residents/{resident}/progress-notes/create', 'pages::residents.progress-note-create')->name('residents.progress-notes.create');
         Route::livewire('residents/{resident}/adl/create', 'pages::residents.adl-form-create')->name('residents.adl.create');
         Route::livewire('residents/{resident}/financial-transactions/create', 'pages::residents.financial-transaction-create')->name('residents.financial-transactions.create');

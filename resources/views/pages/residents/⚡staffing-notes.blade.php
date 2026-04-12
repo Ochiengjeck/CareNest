@@ -11,7 +11,7 @@ use Livewire\WithPagination;
 
 new
 #[Layout('layouts.app.sidebar')]
-#[Title('Staffing Notes')]
+#[Title('Staff Reports')]
 class extends Component {
     use WithPagination;
 
@@ -72,7 +72,7 @@ class extends Component {
             <div class="flex items-center gap-3">
                 <flux:button variant="ghost" :href="route('residents.show', $this->residentId)" wire:navigate icon="arrow-left" />
                 <div>
-                    <flux:heading size="xl">{{ __('Staffing Notes') }}</flux:heading>
+                    <flux:heading size="xl">{{ __('Staff Reports') }}</flux:heading>
                     <div class="mt-0.5 flex flex-wrap items-center gap-2 text-sm">
                         <flux:subheading>{{ $this->resident->full_name }}</flux:subheading>
                         <flux:badge size="sm" :color="$this->resident->status === 'active' ? 'green' : ($this->resident->status === 'discharged' ? 'amber' : 'red')">
@@ -123,9 +123,9 @@ class extends Component {
                 <div class="mb-4 flex size-16 items-center justify-center rounded-full bg-zinc-100 dark:bg-zinc-800">
                     <flux:icon name="chat-bubble-bottom-center-text" class="size-8 text-zinc-400" />
                 </div>
-                <flux:heading size="sm">{{ __('No staffing notes yet') }}</flux:heading>
+                <flux:heading size="sm">{{ __('No staff reports yet') }}</flux:heading>
                 <flux:text class="mt-1 max-w-sm text-sm text-zinc-400">
-                    {{ __('Staffing notes for this resident will appear here.') }}
+                    {{ __('Staff reports for this resident will appear here.') }}
                 </flux:text>
                 @can('manage-residents')
                     <flux:button class="mt-6" variant="primary" icon="plus" :href="route('residents.staffing-notes.create', $this->residentId)" wire:navigate>

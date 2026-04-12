@@ -12,7 +12,7 @@ use Livewire\Component;
 
 new
 #[Layout('layouts.app.sidebar')]
-#[Title('New Safety Plan')]
+#[Title('New Crisis Plan')]
 class extends Component {
     use SafetyPlanValidationRules;
 
@@ -62,7 +62,7 @@ class extends Component {
         $user    = auth()->user();
         $isFirst = ! $user->signatures()->exists();
         $sig = $user->signatures()->create([
-            'name'           => 'Safety Plan — ' . now()->format('M d, Y'),
+            'name'           => 'Crisis Plan — ' . now()->format('M d, Y'),
             'pen_color'      => $penColor,
             'signature_data' => $dataUrl,
             'is_active'      => $isFirst,
@@ -96,7 +96,7 @@ class extends Component {
             'raw_signature_data' => ($this->signature_id === null && $this->rawSignatureData !== '') ? $this->rawSignatureData : null,
             'recorded_by'        => auth()->id(),
         ]);
-        session()->flash('status', 'Safety plan saved successfully.');
+        session()->flash('status', 'Crisis plan saved successfully.');
         $this->redirect(route('residents.safety-plans.index', $this->residentId), navigate: true);
     }
 }; ?>
@@ -107,7 +107,7 @@ class extends Component {
         <div class="mb-6 flex items-center gap-3">
             <flux:button variant="ghost" :href="route('residents.safety-plans.index', $this->residentId)" wire:navigate icon="arrow-left" />
             <div>
-                <flux:heading size="xl">{{ __('New Safety Plan') }}</flux:heading>
+                <flux:heading size="xl">{{ __('New Crisis Plan') }}</flux:heading>
                 <flux:subheading>{{ $this->resident->full_name }}</flux:subheading>
             </div>
         </div>
@@ -348,7 +348,7 @@ class extends Component {
 
             <div class="flex justify-end gap-3 pb-4">
                 <flux:button variant="ghost" :href="route('residents.safety-plans.index', $this->residentId)" wire:navigate>{{ __('Cancel') }}</flux:button>
-                <flux:button variant="primary" type="submit" icon="check">{{ __('Save Safety Plan') }}</flux:button>
+                <flux:button variant="primary" type="submit" icon="check">{{ __('Save Crisis Plan') }}</flux:button>
             </div>
 
         </form>

@@ -39,7 +39,7 @@
 
     <div class="header">
         <h1>{{ strtoupper($facility) }}</h1>
-        <div class="doc-title">Safety Plan</div>
+        <div class="doc-title">Crisis Plan</div>
     </div>
 
     <div class="resident-strip">
@@ -171,7 +171,7 @@
     </div>
 
     <div class="footer">
-        <span>{{ $facility }} &mdash; Confidential Safety Plan</span>
+        <span>{{ $facility }} &mdash; Confidential Crisis Plan</span>
         <span>Generated {{ now()->format('m/d/Y g:i A') }}</span>
     </div>
 </div>

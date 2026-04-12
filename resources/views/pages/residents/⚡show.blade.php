@@ -197,10 +197,15 @@ class extends Component {
                             <flux:button variant="outline" size="sm" :href="route('residents.discharge', $this->resident)" wire:navigate icon="arrow-right-start-on-rectangle">
                                 Discharge
                             </flux:button>
-                        @elseif($this->resident->status === 'discharged' && $this->resident->discharge)
-                            <a href="{{ route('residents.discharge.export.pdf', $this->resident->discharge) }}" target="_blank">
-                                <flux:button variant="outline" size="sm" icon="document-arrow-down">Summary PDF</flux:button>
-                            </a>
+                        @elseif($this->resident->status === 'discharged')
+                            @if($this->resident->discharge)
+                                <a href="{{ route('residents.discharge.export.pdf', $this->resident->discharge) }}" target="_blank">
+                                    <flux:button variant="outline" size="sm" icon="document-arrow-down">Summary PDF</flux:button>
+                                </a>
+                            @endif
+                            <flux:button variant="primary" size="sm" :href="route('residents.readmit', $this->resident)" wire:navigate icon="arrow-left-end-on-rectangle">
+                                Readmit
+                            </flux:button>
                         @endif
                         <flux:button variant="primary" size="sm" :href="route('residents.edit', $this->resident)" wire:navigate icon="pencil">
                             Edit
@@ -344,15 +349,15 @@ class extends Component {
                         @foreach([
                             ['label' => 'Shift Progress Note',  'icon' => 'clipboard-document-list',          'route' => route('residents.progress-notes', $this->residentId)],
                             ['label' => 'ADL Assessment',       'icon' => 'list-bullet',                       'route' => route('residents.adl.index', $this->residentId)],
-                            ['label' => 'Financial Record',     'icon' => 'banknotes',                         'route' => route('residents.financial-transactions.index', $this->residentId)],
-                            ['label' => 'Staffing Note',        'icon' => 'chat-bubble-bottom-center-text',    'route' => route('residents.staffing-notes.index', $this->residentId)],
+                            ['label' => 'Resident Financial Record', 'icon' => 'banknotes',                         'route' => route('residents.financial-transactions.index', $this->residentId)],
+                            ['label' => 'Staff Report',              'icon' => 'chat-bubble-bottom-center-text',    'route' => route('residents.staffing-notes.index', $this->residentId)],
                             ['label' => 'Authorization (ROI)',  'icon' => 'document-check',                    'route' => route('residents.authorizations.index', $this->residentId)],
                             ['label' => 'Incident Report',      'icon' => 'exclamation-triangle',              'route' => route('incidents.create')],
-                            ['label' => 'Contact Note',         'icon' => 'phone-arrow-up-right',              'route' => route('residents.contact-notes.index', $this->residentId)],
-                            ['label' => 'BHP Progress Note',    'icon' => 'sparkles',                          'route' => route('residents.bhp-progress-notes.index', $this->residentId)],
+                            ['label' => 'Contact Report',       'icon' => 'phone-arrow-up-right',              'route' => route('residents.contact-notes.index', $this->residentId)],
+                            ['label' => 'BHP Progress Report',  'icon' => 'sparkles',                          'route' => route('residents.bhp-progress-notes.index', $this->residentId)],
                             ['label' => 'ASAM Checklist',       'icon' => 'clipboard-document-check',          'route' => route('residents.asam-checklists.index', $this->residentId)],
                             ['label' => 'Face Sheet',           'icon' => 'identification',                    'route' => route('residents.face-sheets.index', $this->residentId)],
-                            ['label' => 'Safety Plan',          'icon' => 'shield-check',                      'route' => route('residents.safety-plans.index', $this->residentId)],
+                            ['label' => 'Crisis Plan',          'icon' => 'shield-check',                      'route' => route('residents.safety-plans.index', $this->residentId)],
                             ['label' => 'Mental Status',        'icon' => 'face-smile',                        'route' => route('residents.mental-status.index', $this->residentId)],
                             ['label' => 'Treatment Refusal',    'icon' => 'no-symbol',                         'route' => route('residents.treatment-refusals.index', $this->residentId)],
                             ['label' => 'Appointment Log',      'icon' => 'calendar-days',                     'route' => route('residents.appointment-logs.index', $this->residentId)],
