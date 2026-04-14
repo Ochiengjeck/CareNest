@@ -30,7 +30,7 @@ class extends Component {
     <div class="max-w-3xl space-y-6">
         {{-- Header --}}
         <div class="flex items-center gap-4">
-            <flux:button variant="ghost" :href="route('vitals.index')" wire:navigate icon="arrow-left" />
+            <flux:button variant="ghost" :href="$this->vital->resident_id ? route('residents.show', [$this->vital->resident_id, 'activeTab' => 'vitals']) : route('vitals.index')" wire:navigate icon="arrow-left" />
             <div>
                 <div class="flex items-center gap-2">
                     <flux:heading size="xl">{{ __('Vital Signs') }}</flux:heading>

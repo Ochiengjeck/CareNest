@@ -43,6 +43,7 @@ Route::middleware(['auth', 'verified', 'can:view-residents'])->group(function ()
         Route::livewire('residents/{resident}/nursing-assessments/create', 'pages::residents.nursing-assessment-create')->name('residents.nursing-assessments.create');
         Route::livewire('residents/{resident}/art-meetings/create', 'pages::residents.art-meeting-create')->name('residents.art-meetings.create');
         Route::livewire('residents/{resident}/observation-notes/create', 'pages::residents.observation-note-create')->name('residents.observation-notes.create');
+        Route::livewire('residents/{resident}/mar', 'pages::residents.mar')->name('residents.mar');
 
         // Discharge Report Exports
         Route::prefix('residents/discharge/export')->name('residents.discharge.export.')->group(function () {

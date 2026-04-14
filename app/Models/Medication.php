@@ -17,6 +17,7 @@ class Medication extends Model
         'name',
         'dosage',
         'frequency',
+        'administration_times',
         'route',
         'prescribed_by',
         'prescribed_date',
@@ -34,6 +35,7 @@ class Medication extends Model
             'prescribed_date' => 'date',
             'start_date' => 'date',
             'end_date' => 'date',
+            'administration_times' => 'array',
         ];
     }
 
@@ -82,6 +84,24 @@ class Medication extends Model
             'on_hold' => 'amber',
             default => 'zinc',
         };
+    }
+
+    public function getScheduledTimesAttribute(): array
+    {
+        if (!empty($this->administration_times)) {
+            return $this->administration_times;
+        }
+        $freq = strtolower($this->frequency ?? '');
+        if (preg_match('/\bqid\b|four.times|4\s*times/i', $freq)) {
+            return ['08:00', '12:00', '16:00', '20:00'];
+        }
+        if (preg_match('/\btid\b|three.times|3\s*times/i', $freq)) {
+            return ['08:00', '14:00', '20:00'];
+        }
+        if (preg_match('/\bbid\b|twice|two.times|2\s*times/i', $freq)) {
+            return ['08:00', '20:00'];
+        }
+        return ['08:00'];
     }
 
     public function getRouteLabelAttribute(): string

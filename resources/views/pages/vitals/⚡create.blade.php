@@ -6,6 +6,7 @@ use App\Models\Vital;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
+use Livewire\Attributes\Url;
 use Livewire\Component;
 
 new
@@ -14,6 +15,7 @@ new
 class extends Component {
     use VitalValidationRules;
 
+    #[Url]
     public string $resident_id = '';
     public string $recorded_at = '';
     public ?int $blood_pressure_systolic = null;
@@ -58,14 +60,19 @@ class extends Component {
         $vital = Vital::create($validated);
 
         session()->flash('status', 'Vitals recorded successfully.');
-        $this->redirect(route('vitals.show', $vital), navigate: true);
+
+        if ($this->resident_id) {
+            $this->redirect(route('residents.show', [$this->resident_id, 'activeTab' => 'vitals']), navigate: true);
+        } else {
+            $this->redirect(route('vitals.show', $vital), navigate: true);
+        }
     }
 }; ?>
 
 <flux:main>
     <div class="max-w-3xl space-y-6">
         <div class="flex items-center gap-4">
-            <flux:button variant="ghost" :href="route('vitals.index')" wire:navigate icon="arrow-left" />
+            <flux:button variant="ghost" :href="$resident_id ? route('residents.show', [$resident_id, 'activeTab' => 'vitals']) : route('vitals.index')" wire:navigate icon="arrow-left" />
             <div>
                 <flux:heading size="xl">{{ __('Record Vitals') }}</flux:heading>
                 <flux:subheading>{{ __('Record vital signs for a resident') }}</flux:subheading>
@@ -138,7 +145,7 @@ class extends Component {
 
             {{-- Actions --}}
             <div class="flex justify-end gap-3">
-                <flux:button variant="ghost" :href="route('vitals.index')" wire:navigate>
+                <flux:button variant="ghost" :href="$resident_id ? route('residents.show', [$resident_id, 'activeTab' => 'vitals']) : route('vitals.index')" wire:navigate>
                     {{ __('Cancel') }}
                 </flux:button>
                 <flux:button variant="primary" type="submit">

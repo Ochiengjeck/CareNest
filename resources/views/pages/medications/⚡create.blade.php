@@ -7,6 +7,7 @@ use App\Services\AI\AiManager;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
+use Livewire\Attributes\Url;
 use Livewire\Component;
 
 new
@@ -15,10 +16,12 @@ new
 class extends Component {
     use MedicationValidationRules;
 
+    #[Url]
     public string $resident_id = '';
     public string $name = '';
     public string $dosage = '';
     public string $frequency = '';
+    public array $administration_times = [];
     public string $route = 'oral';
     public string $prescribed_by = '';
     public string $prescribed_date = '';
@@ -142,17 +145,22 @@ class extends Component {
 
         $validated['created_by'] = auth()->id();
 
-        $medication = Medication::create($validated);
+        Medication::create($validated);
 
         session()->flash('status', 'Medication added successfully.');
-        $this->redirect(route('medications.show', $medication), navigate: true);
+
+        if ($validated['resident_id']) {
+            $this->redirect(route('residents.mar', $validated['resident_id']), navigate: true);
+        } else {
+            $this->redirect(route('medications.index'), navigate: true);
+        }
     }
 }; ?>
 
 <flux:main>
     <div class="max-w-3xl space-y-6">
         <div class="flex items-center gap-4">
-            <flux:button variant="ghost" :href="route('medications.index')" wire:navigate icon="arrow-left" />
+            <flux:button variant="ghost" :href="$resident_id ? route('residents.mar', $resident_id) : route('medications.index')" wire:navigate icon="arrow-left" />
             <div>
                 <flux:heading size="xl">{{ __('Add Medication') }}</flux:heading>
                 <flux:subheading>{{ __('Create a new medication prescription') }}</flux:subheading>
@@ -199,6 +207,37 @@ class extends Component {
                     <flux:input wire:model="dosage" :label="__('Dosage')" required placeholder="e.g., 500mg, 10ml" />
                     <flux:input wire:model="frequency" :label="__('Frequency')" required placeholder="e.g., Twice daily, Every 8 hours" />
 
+                    <div class="sm:col-span-2"
+                        x-data="{
+                            times: @entangle('administration_times'),
+                            addTime() { if (this.times.length < 4) this.times.push('08:00'); },
+                            removeTime(i) { this.times.splice(i, 1); }
+                        }">
+                        <flux:label>{{ __('Administration Times') }}</flux:label>
+                        <flux:description class="mb-2">{{ __('Set specific administration times (up to 4). Leave empty to derive from frequency.') }}</flux:description>
+                        <div class="flex flex-wrap gap-2 items-center">
+                            <template x-for="(t, i) in times" :key="i">
+                                <div class="flex items-center gap-1">
+                                    <input type="time" x-model="times[i]"
+                                        class="rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 text-sm px-2 py-1.5 focus:ring-2 focus:ring-blue-500 focus:outline-none" />
+                                    <button type="button" @click="removeTime(i)"
+                                        class="text-zinc-400 hover:text-red-500 transition-colors">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                                    </button>
+                                </div>
+                            </template>
+                            <button type="button" @click="addTime()" x-show="times.length < 4"
+                                class="flex items-center gap-1 text-sm text-blue-600 dark:text-blue-400 hover:underline">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                                {{ __('Add time') }}
+                            </button>
+                            <span x-show="times.length === 0" class="text-sm text-zinc-400 italic">{{ __('No times set — will derive from frequency') }}</span>
+                        </div>
+                        @error('administration_times.*')
+                            <flux:text class="mt-1 text-sm text-red-500">{{ $message }}</flux:text>
+                        @enderror
+                    </div>
+
                     <flux:select wire:model="route" :label="__('Route')" required>
                         <flux:select.option value="oral">{{ __('Oral') }}</flux:select.option>
                         <flux:select.option value="topical">{{ __('Topical') }}</flux:select.option>
@@ -240,7 +279,7 @@ class extends Component {
 
             {{-- Actions --}}
             <div class="flex justify-end gap-3">
-                <flux:button variant="ghost" :href="route('medications.index')" wire:navigate>
+                <flux:button variant="ghost" :href="$resident_id ? route('residents.mar', $resident_id) : route('medications.index')" wire:navigate>
                     {{ __('Cancel') }}
                 </flux:button>
                 <flux:button variant="primary" type="submit">

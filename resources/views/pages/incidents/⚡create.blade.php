@@ -6,6 +6,7 @@ use App\Models\Resident;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
+use Livewire\Attributes\Url;
 use Livewire\Component;
 
 new
@@ -14,6 +15,7 @@ new
 class extends Component {
     use IncidentValidationRules;
 
+    #[Url]
     public ?string $resident_id = null;
     public string $title = '';
     public string $type = 'fall';
@@ -58,14 +60,19 @@ class extends Component {
         $incident = Incident::create($validated);
 
         session()->flash('status', 'Incident reported successfully.');
-        $this->redirect(route('incidents.show', $incident), navigate: true);
+
+        if ($this->resident_id) {
+            $this->redirect(route('residents.show', [$this->resident_id, 'activeTab' => 'incidents']), navigate: true);
+        } else {
+            $this->redirect(route('incidents.show', $incident), navigate: true);
+        }
     }
 }; ?>
 
 <flux:main>
     <div class="max-w-3xl space-y-6">
         <div class="flex items-center gap-4">
-            <flux:button variant="ghost" :href="route('incidents.index')" wire:navigate icon="arrow-left" />
+            <flux:button variant="ghost" :href="$resident_id ? route('residents.show', [$resident_id, 'activeTab' => 'incidents']) : route('incidents.index')" wire:navigate icon="arrow-left" />
             <div>
                 <flux:heading size="xl">{{ __('Report Incident') }}</flux:heading>
                 <flux:subheading>{{ __('Document a new incident report') }}</flux:subheading>
@@ -130,7 +137,7 @@ class extends Component {
 
             {{-- Actions --}}
             <div class="flex justify-end gap-3">
-                <flux:button variant="ghost" :href="route('incidents.index')" wire:navigate>
+                <flux:button variant="ghost" :href="$resident_id ? route('residents.show', [$resident_id, 'activeTab' => 'incidents']) : route('incidents.index')" wire:navigate>
                     {{ __('Cancel') }}
                 </flux:button>
                 <flux:button variant="primary" type="submit">

@@ -93,9 +93,9 @@ class extends Component {
         return [
             ['step' => 1, 'label' => 'Admission', 'description' => 'Resident registered with consent and legal status', 'done' => true, 'route' => null, 'icon' => 'user-plus'],
             ['step' => 2, 'label' => 'Nursing Assessment & Triage', 'description' => 'Safety screening, substance use, physical condition', 'done' => NursingAssessment::where('resident_id', $id)->exists(), 'route' => route('residents.nursing-assessments.index', $id), 'icon' => 'clipboard-document-check'],
-            ['step' => 3, 'label' => 'Vital Signs', 'description' => 'Baseline BP, HR, RR, Temp, O2', 'done' => Vital::where('resident_id', $id)->exists(), 'route' => route('vitals.create'), 'icon' => 'heart'],
+            ['step' => 3, 'label' => 'Vital Signs', 'description' => 'Baseline BP, HR, RR, Temp, O2', 'done' => Vital::where('resident_id', $id)->exists(), 'route' => route('vitals.create', ['resident_id' => $id]), 'icon' => 'heart'],
             ['step' => 4, 'label' => 'Psychiatric Evaluation', 'description' => 'MSE, psychiatric history, risk assessment within 24h', 'done' => InitialAssessment::where('resident_id', $id)->exists(), 'route' => route('residents.initial-assessments.index', $id), 'icon' => 'academic-cap'],
-            ['step' => 5, 'label' => 'Medications & MAR', 'description' => 'Prescriptions, pharmacy verification, administration record', 'done' => Medication::where('resident_id', $id)->where('status', 'active')->exists(), 'route' => route('medications.create'), 'icon' => 'beaker'],
+            ['step' => 5, 'label' => 'Medications & MAR', 'description' => 'Prescriptions, pharmacy verification, administration record', 'done' => Medication::where('resident_id', $id)->where('status', 'active')->exists(), 'route' => route('residents.mar', $id), 'icon' => 'beaker'],
             ['step' => 6, 'label' => 'Treatment Plan', 'description' => 'Diagnosis, measurable goals, interventions, discharge criteria', 'done' => $this->resident->carePlans()->exists(), 'route' => route('care-plans.create', $id), 'icon' => 'clipboard-document-list'],
             ['step' => 7, 'label' => 'ART Meetings', 'description' => 'Active Treatment Review team meetings (monthly)', 'done' => ArtMeeting::where('resident_id', $id)->exists(), 'route' => route('residents.art-meetings.index', $id), 'icon' => 'users'],
             ['step' => 8, 'label' => 'Observation Notes (RON)', 'description' => 'Safety monitoring, behavioral observation log', 'done' => ObservationNote::where('resident_id', $id)->exists(), 'route' => route('residents.observation-notes.index', $id), 'icon' => 'eye'],
@@ -352,7 +352,7 @@ class extends Component {
                             ['label' => 'Resident Financial Record', 'icon' => 'banknotes',                         'route' => route('residents.financial-transactions.index', $this->residentId)],
                             ['label' => 'Staff Report',              'icon' => 'chat-bubble-bottom-center-text',    'route' => route('residents.staffing-notes.index', $this->residentId)],
                             ['label' => 'Authorization (ROI)',  'icon' => 'document-check',                    'route' => route('residents.authorizations.index', $this->residentId)],
-                            ['label' => 'Incident Report',      'icon' => 'exclamation-triangle',              'route' => route('incidents.create')],
+                            ['label' => 'Incident Report',      'icon' => 'exclamation-triangle',              'route' => route('incidents.create', ['resident_id' => $this->residentId])],
                             ['label' => 'Contact Report',       'icon' => 'phone-arrow-up-right',              'route' => route('residents.contact-notes.index', $this->residentId)],
                             ['label' => 'BHP Progress Report',  'icon' => 'sparkles',                          'route' => route('residents.bhp-progress-notes.index', $this->residentId)],
                             ['label' => 'ASAM Checklist',       'icon' => 'clipboard-document-check',          'route' => route('residents.asam-checklists.index', $this->residentId)],
@@ -592,11 +592,16 @@ class extends Component {
                 <flux:card class="space-y-4">
                     <div class="flex items-center justify-between">
                         <flux:heading size="sm">{{ __('Active Medications') }}</flux:heading>
-                        @if($this->resident->isActive())
-                            <flux:button variant="primary" size="sm" :href="route('medications.create')" wire:navigate icon="plus">
-                                {{ __('Add Medication') }}
+                        <div class="flex items-center gap-2">
+                            <flux:button variant="primary" size="sm" :href="route('residents.mar', $this->resident)" wire:navigate icon="table-cells">
+                                {{ __('Open MAR') }}
                             </flux:button>
-                        @endif
+                            @if($this->resident->isActive())
+                                <flux:button variant="outline" size="sm" :href="route('medications.create', ['resident_id' => $this->residentId])" wire:navigate icon="plus">
+                                    {{ __('Add Medication') }}
+                                </flux:button>
+                            @endif
+                        </div>
                     </div>
                     <flux:separator />
 
@@ -647,7 +652,7 @@ class extends Component {
                     <div class="flex items-center justify-between">
                         <flux:heading size="sm">{{ __('Recent Vitals') }}</flux:heading>
                         @if($this->resident->isActive())
-                            <flux:button variant="primary" size="sm" :href="route('vitals.create')" wire:navigate icon="plus">
+                            <flux:button variant="primary" size="sm" :href="route('vitals.create', ['resident_id' => $this->residentId])" wire:navigate icon="plus">
                                 {{ __('Record Vitals') }}
                             </flux:button>
                         @endif
@@ -706,7 +711,7 @@ class extends Component {
                         <flux:heading size="sm">{{ __('Incidents') }}</flux:heading>
                         @if($this->resident->isActive())
                             @can('report-incidents')
-                                <flux:button variant="primary" size="sm" :href="route('incidents.create')" wire:navigate icon="plus">
+                                <flux:button variant="primary" size="sm" :href="route('incidents.create', ['resident_id' => $this->residentId])" wire:navigate icon="plus">
                                     {{ __('Report Incident') }}
                                 </flux:button>
                             @endcan

@@ -31,7 +31,7 @@ class extends Component {
         {{-- Header --}}
         <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div class="flex items-center gap-4">
-                <flux:button variant="ghost" :href="route('incidents.index')" wire:navigate icon="arrow-left" />
+                <flux:button variant="ghost" :href="$this->incident->resident_id ? route('residents.show', [$this->incident->resident_id, 'activeTab' => 'incidents']) : route('incidents.index')" wire:navigate icon="arrow-left" />
                 <div>
                     <div class="flex flex-wrap items-center gap-2">
                         <flux:heading size="xl">{{ $this->incident->title }}</flux:heading>

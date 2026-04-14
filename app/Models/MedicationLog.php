@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Signature;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -17,6 +18,10 @@ class MedicationLog extends Model
         'status',
         'notes',
         'administered_by',
+        'initials',
+        'slot_time',
+        'raw_signature_data',
+        'signature_id',
     ];
 
     protected function casts(): array
@@ -43,16 +48,26 @@ class MedicationLog extends Model
         return $this->belongsTo(User::class, 'administered_by');
     }
 
+    public function signature(): BelongsTo
+    {
+        return $this->belongsTo(Signature::class);
+    }
+
     // Accessors
 
     public function getStatusColorAttribute(): string
     {
         return match ($this->status) {
-            'given' => 'green',
-            'refused' => 'amber',
-            'withheld' => 'blue',
-            'missed' => 'red',
-            default => 'zinc',
+            'given'        => 'green',
+            'hospital'     => 'zinc',
+            'home_pass'    => 'sky',
+            'refused'      => 'amber',
+            'on_hold'      => 'yellow',
+            'unavailable'  => 'violet',
+            'withheld'     => 'blue',
+            'missed'       => 'red',
+            'discontinued' => 'zinc',
+            default        => 'zinc',
         };
     }
 }

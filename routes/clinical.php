@@ -24,13 +24,13 @@ Route::middleware(['auth', 'verified', 'can:manage-medications'])->group(functio
 
 // Incidents
 Route::middleware(['auth', 'verified'])->group(function () {
+    Route::middleware('can:report-incidents')->group(function () {
+        Route::livewire('incidents/create', 'pages::incidents.create')->name('incidents.create');
+    });
+
     Route::middleware('can:manage-incidents')->group(function () {
         Route::livewire('incidents', 'pages::incidents.index')->name('incidents.index');
         Route::livewire('incidents/{incident}/edit', 'pages::incidents.edit')->name('incidents.edit');
         Route::livewire('incidents/{incident}', 'pages::incidents.show')->name('incidents.show');
-    });
-
-    Route::middleware('can:report-incidents')->group(function () {
-        Route::livewire('incidents/create', 'pages::incidents.create')->name('incidents.create');
     });
 });
