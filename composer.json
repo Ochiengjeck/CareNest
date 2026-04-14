@@ -11,6 +11,7 @@
     "require": {
         "php": "^8.2",
         "barryvdh/laravel-dompdf": "*",
+        "cloudinary-labs/cloudinary-laravel": "^3.0",
         "endroid/qr-code": "^6.1",
         "laravel/fortify": "^1.30",
         "laravel/framework": "^12.0",
