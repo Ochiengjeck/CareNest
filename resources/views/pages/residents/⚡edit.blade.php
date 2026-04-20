@@ -125,7 +125,7 @@ class extends Component {
     public function removePhoto(): void
     {
         if ($this->existing_photo) {
-            Storage::disk('public')->delete($this->existing_photo);
+            Storage::disk('s3')->delete($this->existing_photo);
             $resident = Resident::findOrFail($this->residentId);
             $resident->update(['photo_path' => null, 'updated_by' => auth()->id()]);
             $this->existing_photo = null;
@@ -151,9 +151,9 @@ class extends Component {
 
         if ($this->photo) {
             if ($this->existing_photo) {
-                Storage::disk('public')->delete($this->existing_photo);
+                Storage::disk('s3')->delete($this->existing_photo);
             }
-            $data['photo_path'] = $this->photo->store('residents/photos', 'public');
+            $data['photo_path'] = $this->photo->store('residents/photos', 's3');
         }
 
         $resident->update($data);

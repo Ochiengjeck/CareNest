@@ -101,7 +101,7 @@ class extends Component {
         // Handle attachments
         foreach ($this->attachments as $file) {
             if ($file) {
-                $path = $file->store('mentorship/attachments', 'public');
+                $path = $file->store('mentorship/attachments', 's3');
 
                 MentorshipAttachment::create([
                     'topic_id' => $topic->id,

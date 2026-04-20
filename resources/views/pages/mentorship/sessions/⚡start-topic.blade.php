@@ -167,7 +167,7 @@ class extends Component {
             return null;
         }
 
-        $path = $this->pendingUpload->store('mentorship/media', 'public');
+        $path = $this->pendingUpload->store('mentorship/media', 's3');
         $this->pendingUpload = null;
 
         return $path;
@@ -175,7 +175,7 @@ class extends Component {
 
     public function removeUploadedMedia(string $path): void
     {
-        Storage::disk('public')->delete($path);
+        Storage::disk('s3')->delete($path);
     }
 
     public function startSession(): void

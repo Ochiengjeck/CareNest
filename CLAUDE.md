@@ -49,6 +49,7 @@ npm run build
 - **Roles/Permissions**: Spatie Laravel Permission
 - **AI**: Groq (Llama 3.3, Qwen 3) + Google Gemini (2.0/2.5) via HTTP facade
 - **Exports**: `barryvdh/laravel-dompdf` (PDF), `phpoffice/phpword` (Word)
+- **File Storage**: Cloudflare R2 (S3-compatible) via `league/flysystem-aws-s3-v3`; `FILESYSTEM_DISK=s3` is the default. Cloudinary disk also configured (`cloudinary-labs/cloudinary-laravel`) but not yet used in views. All file uploads use `Storage::disk('s3')` explicitly.
 - **Database**: SQLite (dev), configurable for production
 
 ### Roles & Permissions
@@ -68,7 +69,7 @@ Users can have multiple roles and direct permission overrides. Use `@can('permis
 - `app/Concerns/` - 18 validation traits (one per domain: `PasswordValidationRules`, `UserValidationRules`, `ResidentValidationRules`, `CarePlanValidationRules`, `MedicationValidationRules`, `VitalValidationRules`, `IncidentValidationRules`, `GeneralSettingsValidationRules`, `AiSettingsValidationRules`, `ProfileValidationRules`, `StaffProfileValidationRules`, `QualificationValidationRules`, `ShiftValidationRules`, `TherapistAssignmentValidationRules`, `TherapySessionValidationRules`, `DischargeValidationRules`, `PublicWebsiteValidationRules`, `MentorshipValidationRules`)
 - `app/Contracts/` - Interfaces (`AiProvider`)
 - `app/DataObjects/` - Value objects (`AiResponse`)
-- `app/Models/` - 28 Eloquent models (see Models section below)
+- `app/Models/` - 30+ Eloquent models (see Models section below)
 - `app/Services/` - `SettingsService`, `ThemeService`, `TherapyReportService`, `DischargeReportService`, `AI/AiManager`, `AI/GroqProvider`, `AI/GeminiProvider`
 - `app/Http/Controllers/` - `TherapyReportExportController`, `DischargeReportExportController` (PDF/Word export endpoints)
 - `app/Console/Commands/` - `CreateSuperAdminCommand`, `ClearTestUsersCommand`
@@ -83,6 +84,7 @@ Clinical: `Medication`, `MedicationLog`, `Vital`, `Incident`
 Staff: `StaffProfile`, `Qualification`, `Shift`, `Agency`
 Therapy: `TherapySession`, `TherapistAssignment`
 Mentorship: `MentorshipTopic`, `MentorshipAttachment`, `MentorshipNote`, `MentorshipLesson`, `MentorshipSession`
+Financial: `FinancialTransactionRecord` (entries/signers as JSON arrays, `raw_signature_data` encrypted), `Signature` (digital signatures, `signature_data` encrypted, `is_active` scoped)
 Public Website: `Testimonial`, `TeamMember`, `FaqItem`, `GalleryImage`, `CareHomeImage`, `Service`, `Amenity`, `DailySchedule`, `ContactSubmission`
 System: `AuditLog`
 

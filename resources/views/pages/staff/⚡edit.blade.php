@@ -120,7 +120,7 @@ class extends Component {
 
         $documentPath = null;
         if ($this->qualificationDocument) {
-            $documentPath = $this->qualificationDocument->store('staff/qualifications/'.$this->userId, 'public');
+            $documentPath = $this->qualificationDocument->store('staff/qualifications/'.$this->userId, 's3');
         }
 
         Qualification::create([
@@ -153,7 +153,7 @@ class extends Component {
         $qual = Qualification::where('id', $id)->where('user_id', $this->userId)->firstOrFail();
         abort_unless($qual->document_path, 404);
 
-        return Storage::disk('public')->download($qual->document_path, $qual->title);
+        return Storage::disk('s3')->download($qual->document_path, $qual->title);
     }
 
     public function removeQualification(int $id): void

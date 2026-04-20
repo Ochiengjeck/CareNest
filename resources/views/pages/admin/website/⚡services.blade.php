@@ -120,9 +120,9 @@ class extends Component {
 
         if ($this->image) {
             if ($this->current_image) {
-                Storage::disk('public')->delete($this->current_image);
+                Storage::disk('s3')->delete($this->current_image);
             }
-            $data['image_path'] = $this->image->store('services', 'public');
+            $data['image_path'] = $this->image->store('services', 's3');
         }
 
         if ($this->editingServiceId) {
@@ -141,7 +141,7 @@ class extends Component {
         $service = Service::findOrFail($id);
 
         if ($service->image_path) {
-            Storage::disk('public')->delete($service->image_path);
+            Storage::disk('s3')->delete($service->image_path);
         }
 
         $service->delete();

@@ -114,7 +114,7 @@ class extends Component {
 
         $file = $this->docFile;
         $extension = strtolower($file->getClientOriginalExtension());
-        $storedPath = $file->store('staff/documents/'.$this->userId, 'public');
+        $storedPath = $file->store('staff/documents/'.$this->userId, 's3');
 
         StaffDocument::create([
             'user_id' => $this->userId,
@@ -142,7 +142,7 @@ class extends Component {
     public function deleteDocument(int $id): void
     {
         $doc = StaffDocument::where('id', $id)->where('user_id', $this->userId)->firstOrFail();
-        Storage::disk('public')->delete($doc->file_path);
+        Storage::disk('s3')->delete($doc->file_path);
         $doc->delete();
 
         unset($this->allDocuments, $this->categorySummary, $this->activeDocuments);
@@ -154,7 +154,7 @@ class extends Component {
     {
         $doc = StaffDocument::where('id', $id)->where('user_id', $this->userId)->firstOrFail();
 
-        return Storage::disk('public')->download($doc->file_path, $doc->title.'.'.$doc->file_type);
+        return Storage::disk('s3')->download($doc->file_path, $doc->title.'.'.$doc->file_type);
     }
 }; ?>
 

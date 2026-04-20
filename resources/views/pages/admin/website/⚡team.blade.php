@@ -64,9 +64,9 @@ class extends Component {
 
         if ($this->photo) {
             if ($this->current_photo) {
-                Storage::disk('public')->delete($this->current_photo);
+                Storage::disk('s3')->delete($this->current_photo);
             }
-            $data['photo'] = $this->photo->store('team', 'public');
+            $data['photo'] = $this->photo->store('team', 's3');
         }
 
         if ($this->editingId) {
@@ -85,7 +85,7 @@ class extends Component {
         $member = TeamMember::findOrFail($id);
 
         if ($member->photo) {
-            Storage::disk('public')->delete($member->photo);
+            Storage::disk('s3')->delete($member->photo);
         }
 
         $member->delete();
@@ -102,7 +102,7 @@ class extends Component {
     public function removePhoto(): void
     {
         if ($this->current_photo && $this->editingId) {
-            Storage::disk('public')->delete($this->current_photo);
+            Storage::disk('s3')->delete($this->current_photo);
             TeamMember::find($this->editingId)->update(['photo' => null]);
             $this->current_photo = null;
         }

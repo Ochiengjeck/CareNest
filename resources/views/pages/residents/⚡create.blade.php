@@ -101,7 +101,7 @@ class extends Component {
         $data['created_by'] = auth()->id();
 
         if ($this->photo) {
-            $data['photo_path'] = $this->photo->store('residents/photos', 'public');
+            $data['photo_path'] = $this->photo->store('residents/photos', 's3');
         }
 
         $resident = Resident::create($data);

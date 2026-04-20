@@ -124,7 +124,7 @@ class extends Component {
         // Handle new attachments
         foreach ($this->newAttachments as $file) {
             if ($file) {
-                $path = $file->store('mentorship/attachments', 'public');
+                $path = $file->store('mentorship/attachments', 's3');
 
                 MentorshipAttachment::create([
                     'topic_id' => $this->topicId,
@@ -147,7 +147,7 @@ class extends Component {
     {
         $attachment = MentorshipAttachment::where('topic_id', $this->topicId)->findOrFail($attachmentId);
 
-        Storage::disk('public')->delete($attachment->file_path);
+        Storage::disk('s3')->delete($attachment->file_path);
         $attachment->delete();
 
         unset($this->topic);
@@ -169,7 +169,7 @@ class extends Component {
     {
         // Delete attachments from storage
         foreach ($this->topic->attachments as $attachment) {
-            Storage::disk('public')->delete($attachment->file_path);
+            Storage::disk('s3')->delete($attachment->file_path);
         }
 
         $this->topic->delete();
