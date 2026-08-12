@@ -1,7 +1,7 @@
 {
   "version": 2,
   "framework": null,
-  "buildCommand": "composer install --no-dev --prefer-dist --optimize-autoloader --no-interaction --no-scripts && npm run build",
+  "buildCommand": "php -r \"copy('https://getcomposer.org/installer', 'composer-setup.php');\" && php composer-setup.php --quiet && php composer.phar install --no-dev --prefer-dist --optimize-autoloader --no-interaction --no-scripts && npm run build",
   "outputDirectory": "public",
   "functions": {
     "api/index.php": {
