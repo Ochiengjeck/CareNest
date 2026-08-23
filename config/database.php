@@ -96,14 +96,6 @@ return [
             'prefix_indexes' => true,
             'search_path' => 'public',
             'sslmode' => env('DB_SSLMODE', 'prefer'),
-            // Neon's pooled endpoint (PgBouncer transaction pooling) does not
-            // reliably support real server-side prepared statements shared
-            // across persistent connections -- it silently corrupts later
-            // statements in a transaction instead of raising a clean error.
-            // Client-side (emulated) prepares avoid the incompatibility.
-            'options' => extension_loaded('pdo_pgsql') ? array_filter([
-                PDO::ATTR_EMULATE_PREPARES => true,
-            ]) : [],
         ],
 
         'sqlsrv' => [
