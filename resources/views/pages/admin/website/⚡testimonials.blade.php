@@ -68,9 +68,9 @@ class extends Component {
         if ($this->author_image) {
             // Delete old image if exists
             if ($this->current_image) {
-                Storage::disk('s3')->delete($this->current_image);
+                Storage::delete($this->current_image);
             }
-            $data['author_image'] = $this->author_image->store('testimonials', 's3');
+            $data['author_image'] = $this->author_image->store('testimonials');
         }
 
         if ($this->editingId) {
@@ -89,7 +89,7 @@ class extends Component {
         $testimonial = Testimonial::findOrFail($id);
 
         if ($testimonial->author_image) {
-            Storage::disk('s3')->delete($testimonial->author_image);
+            Storage::delete($testimonial->author_image);
         }
 
         $testimonial->delete();
@@ -106,7 +106,7 @@ class extends Component {
     public function removeImage(): void
     {
         if ($this->current_image && $this->editingId) {
-            Storage::disk('s3')->delete($this->current_image);
+            Storage::delete($this->current_image);
             Testimonial::find($this->editingId)->update(['author_image' => null]);
             $this->current_image = null;
         }

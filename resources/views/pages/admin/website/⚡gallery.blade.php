@@ -86,9 +86,9 @@ class extends Component {
 
         if ($this->image) {
             if ($this->current_image) {
-                Storage::disk('s3')->delete($this->current_image);
+                Storage::delete($this->current_image);
             }
-            $data['image_path'] = $this->image->store('gallery', 's3');
+            $data['image_path'] = $this->image->store('gallery');
         }
 
         if ($this->editingId) {
@@ -107,7 +107,7 @@ class extends Component {
         $image = GalleryImage::findOrFail($id);
 
         if ($image->image_path) {
-            Storage::disk('s3')->delete($image->image_path);
+            Storage::delete($image->image_path);
         }
 
         $image->delete();

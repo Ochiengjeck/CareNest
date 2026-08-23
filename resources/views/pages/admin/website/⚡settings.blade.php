@@ -115,7 +115,7 @@ class extends Component {
 
         $this->validate($this->careHomeImageRules());
 
-        $imagePath = $this->newImage->store('about', 's3');
+        $imagePath = $this->newImage->store('about');
 
         // Auto-feature if this is the first image
         $isFirst = $this->careHomeImages->count() === 0;
@@ -158,7 +158,7 @@ class extends Component {
 
         // Delete the file
         if ($image->image_path) {
-            Storage::disk('s3')->delete($image->image_path);
+            Storage::delete($image->image_path);
         }
 
         $image->delete();

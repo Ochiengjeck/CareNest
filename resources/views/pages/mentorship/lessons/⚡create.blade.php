@@ -82,7 +82,7 @@ class extends Component {
             return null;
         }
 
-        $path = $this->pendingUpload->store('mentorship/media', 's3');
+        $path = $this->pendingUpload->store('mentorship/media');
         $this->pendingUpload = null;
 
         return $path;
@@ -90,7 +90,7 @@ class extends Component {
 
     public function removeUploadedMedia(string $path): void
     {
-        Storage::disk('s3')->delete($path);
+        Storage::delete($path);
     }
 
     public function save(): void

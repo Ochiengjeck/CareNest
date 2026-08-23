@@ -123,14 +123,14 @@ class extends Component {
         $settings = app(SettingsService::class);
 
         if ($this->logo) {
-            $path = $this->logo->store('branding', 's3');
+            $path = $this->logo->store('branding');
             $settings->set('logo_path', $path, 'branding', 'image');
             $this->current_logo = $path;
             $this->logo = null;
         }
 
         if ($this->favicon) {
-            $path = $this->favicon->store('branding', 's3');
+            $path = $this->favicon->store('branding');
             $settings->set('favicon_path', $path, 'branding', 'image');
             $this->current_favicon = $path;
             $this->favicon = null;
@@ -148,7 +148,7 @@ class extends Component {
         $settings = app(SettingsService::class);
 
         if ($this->current_logo) {
-            \Illuminate\Support\Facades\Storage::disk('s3')->delete($this->current_logo);
+            \Illuminate\Support\Facades\Storage::delete($this->current_logo);
         }
 
         $settings->set('logo_path', null, 'branding', 'image');
@@ -160,7 +160,7 @@ class extends Component {
         $settings = app(SettingsService::class);
 
         if ($this->current_favicon) {
-            \Illuminate\Support\Facades\Storage::disk('s3')->delete($this->current_favicon);
+            \Illuminate\Support\Facades\Storage::delete($this->current_favicon);
         }
 
         $settings->set('favicon_path', null, 'branding', 'image');
