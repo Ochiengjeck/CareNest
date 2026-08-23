@@ -5,8 +5,8 @@
 /public/storage
 /storage/*.key
 /storage/pail
-# /vendor - committed for Vercel deployment (no PHP in build environment)
-/vendor 
+/vendor/
+!/vendor/livewire/flux/dist/flux.css
 
 .env
 .env.backup
